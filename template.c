@@ -1,4 +1,4 @@
-/* template - example template for loadable builtin */
+/* fd_ops - loadable builtin that defines fd-related functions */
 
 /* See Makefile for compilation details. */
 #include "bash/config.h"
@@ -12,27 +12,26 @@
 
 extern char *strerror ();
 
-int
-template_builtin (list)
-     WORD_LIST *list;
+int template_builtin (list)
+    WORD_LIST *list;
 {
-  int opt, rval;
+    int rval;
 
-  rval = EXECUTION_SUCCESS;
-  reset_internal_getopt ();
-  while ((opt = internal_getopt (list, "")) != -1)
-    {
-      switch (opt)
-	{
-	CASE_HELPOPT;
-	default:
-	  builtin_usage ();
-	  return (EX_USAGE);
-	}
+    rval = EXECUTION_SUCCESS;
+    reset_internal_getopt ();
+
+    for (int opt; (opt = internal_getopt (list, "")) != -1; ) {
+        switch (opt) {
+            CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
     }
-  list = loptend;
+    list = loptend;
 
-  return (rval);
+    return (rval);
 }
 
 /* Called when `template' is enabled and loaded from the shared object.  If this
@@ -41,7 +40,7 @@ int
 template_builtin_load (name)
      char *name;
 {
-  return (1);
+    return (1);
 }
 
 /* Called when `template' is disabled. */
@@ -52,17 +51,17 @@ template_builtin_unload (name)
 }
 
 char *template_doc[] = {
-	"Short description.",
-	""
-	"Longer description of builtin and usage.",
-	(char *)NULL
+    "Short description.",
+    ""
+    "Longer description of builtin and usage.",
+    (char *)NULL
 };
 
 struct builtin template_struct = {
-	"template",			/* builtin name */
-	template_builtin,		/* function implementing the builtin */
-	BUILTIN_ENABLED,		/* initial flags for builtin */
-	template_doc,			/* array of long documentation strings. */
-	"template",			/* usage synopsis; becomes short_doc */
-	0				/* reserved for internal use */
+    "template",         /* builtin name */
+    template_builtin,       /* function implementing the builtin */
+    BUILTIN_ENABLED,        /* initial flags for builtin */
+    template_doc,           /* array of long documentation strings. */
+    "template",         /* usage synopsis; becomes short_doc */
+    0               /* reserved for internal use */
 };
