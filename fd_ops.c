@@ -10,7 +10,40 @@
 
 #include "loadables.h"
 
-extern char *strerror ();
+int memfd_create_builtin (list)
+    WORD_LIST *list;
+{
+    int rval;
+
+    rval = EXECUTION_SUCCESS;
+    reset_internal_getopt ();
+
+    for (int opt; (opt = internal_getopt (list, "")) != -1; ) {
+        switch (opt) {
+            CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
+    }
+    list = loptend;
+
+    return (rval);
+}
+PUBLIC struct builtin memfd_create_struct = {
+    "memfd_create",             /* builtin name */
+    memfd_create_builtin,       /* function implementing the builtin */
+    BUILTIN_ENABLED,            /* initial flags for builtin */
+    (char*[]){
+        "Short description.",
+        ""
+        "Longer description of builtin and usage.",
+        (char *)NULL
+    },                          /* array of long documentation strings. */
+    "memfd_create",             /* usage synopsis; becomes short_doc */
+    0                           /* reserved for internal use */
+};
 
 int fd_ops_builtin (list)
     WORD_LIST *list;
@@ -45,21 +78,4 @@ PUBLIC int fd_ops_builtin_load (name)
 /* Called when `template' is disabled. */
 PUBLIC void fd_ops_builtin_unload (name)
      char *name;
-{
-}
-
-char *fd_ops_doc[] = {
-    "Short description.",
-    ""
-    "Longer description of builtin and usage.",
-    (char *)NULL
-};
-
-PUBLIC struct builtin fd_ops_struct = {
-    "fd_ops",         /* builtin name */
-    fd_ops_builtin,       /* function implementing the builtin */
-    BUILTIN_ENABLED,        /* initial flags for builtin */
-    fd_ops_doc,           /* array of long documentation strings. */
-    "fd_ops",         /* usage synopsis; becomes short_doc */
-    0               /* reserved for internal use */
-};
+{}
