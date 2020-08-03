@@ -33,6 +33,19 @@ int template_builtin (list)
 
     return (rval);
 }
+PUBLIC struct builtin template_struct = {
+    "template",             /* builtin name */
+    template_builtin,       /* function implementing the builtin */
+    BUILTIN_ENABLED,        /* initial flags for builtin */
+    (char*[]){
+        "Short description.",
+        ""
+        "Longer description of builtin and usage.",
+        (char *)NULL
+    },                      /* array of long documentation strings. */
+    "template",             /* usage synopsis; becomes short_doc */
+    0                       /* reserved for internal use */
+};
 
 /* Called when `template' is enabled and loaded from the shared object.  If this
    function returns 0, the load fails. */
@@ -46,21 +59,4 @@ PUBLIC int template_builtin_load (name)
 /* Called when `template' is disabled. */
 PUBLIC void template_builtin_unload (name)
      char *name;
-{
-}
-
-char *template_doc[] = {
-    "Short description.",
-    ""
-    "Longer description of builtin and usage.",
-    (char *)NULL
-};
-
-PUBLIC struct builtin template_struct = {
-    "template",         /* builtin name */
-    template_builtin,       /* function implementing the builtin */
-    BUILTIN_ENABLED,        /* initial flags for builtin */
-    template_doc,           /* array of long documentation strings. */
-    "template",         /* usage synopsis; becomes short_doc */
-    0               /* reserved for internal use */
-};
+{}
