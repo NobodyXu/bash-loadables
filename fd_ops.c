@@ -6,21 +6,33 @@
 #include <unistd.h>
 #include "bashansi.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 
 #include "loadables.h"
 
-int memfd_create_builtin (list)
-    WORD_LIST *list;
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
+#endif
+#include <sys/mman.h>
+#include <errno.h>
+
+void int2str(int integer, char buffer[11])
 {
-    int rval;
+    snprintf(buffer, 11, "%d", integer);
+}
 
-    rval = EXECUTION_SUCCESS;
-    reset_internal_getopt ();
+int memfd_create_builtin (WORD_LIST *list)
+{
+    reset_internal_getopt();
 
-    for (int opt; (opt = internal_getopt (list, "")) != -1; ) {
+    unsigned int flags = 0;
+    for (int opt; (opt = internal_getopt (list, "C")) != -1; ) {
         switch (opt) {
-            CASE_HELPOPT;
+        case 'C':
+            flags |= MFD_CLOEXEC;
+
+        CASE_HELPOPT;
 
         default:
             builtin_usage();
@@ -29,24 +41,42 @@ int memfd_create_builtin (list)
     }
     list = loptend;
 
-    return (rval);
+    if (list == 0 || list->next) {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+    const char *var = list->word->word;
+
+    int fd = memfd_create(var, flags);
+    if (fd == -1) {
+        perror("memfd_create failed");
+        return 1;
+    }
+
+    _Static_assert (sizeof(int) <= 4, "sizeof(int) is bigged than 4 bytes");
+
+    char buffer[11]; // 10 bytes is enough for 4-byte unsigned int
+    int2str(fd, buffer);
+    bind_variable(var, buffer, 0);
+
+    return (EXECUTION_SUCCESS);
 }
 PUBLIC struct builtin memfd_create_struct = {
     "memfd_create",             /* builtin name */
     memfd_create_builtin,       /* function implementing the builtin */
     BUILTIN_ENABLED,            /* initial flags for builtin */
     (char*[]){
-        "Short description.",
-        ""
-        "Longer description of builtin and usage.",
-        (char *)NULL
+        "Create an anonymous file in RAM and store it in variable $VAR.",
+        "NOTE that if swap is enabled, this anonymous can be swapped onto disk.",
+        "",
+        "Pass -C to enable CLOEXEC.",
+        (char*) NULL
     },                          /* array of long documentation strings. */
-    "memfd_create",             /* usage synopsis; becomes short_doc */
+    "memfd_create [-C] VAR",    /* usage synopsis; becomes short_doc */
     0                           /* reserved for internal use */
 };
 
-int fd_ops_builtin (list)
-    WORD_LIST *list;
+int fd_ops_builtin (WORD_LIST *list)
 {
     int rval;
 
@@ -67,15 +97,16 @@ int fd_ops_builtin (list)
     return (rval);
 }
 
-/* Called when `template' is enabled and loaded from the shared object.  If this
-   function returns 0, the load fails. */
-PUBLIC int fd_ops_builtin_load (name)
-    char *name;
+/**
+ * If this function returns 0, the load fails.
+ */
+PUBLIC int fd_ops_builtin_load (char *name)
 {
     return (1);
 }
 
-/* Called when `template' is disabled. */
-PUBLIC void fd_ops_builtin_unload (name)
-     char *name;
+/**
+ * Called when `template' is disabled.
+ */
+PUBLIC void fd_ops_builtin_unload (char *name)
 {}
