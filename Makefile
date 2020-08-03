@@ -45,7 +45,7 @@ loadables.h.gch: loadables.h
 	$(CC) $(CCFLAGS) $(INC) $<
 
 clean:
-	rm -f $(OUTS)
+	rm -f $(OUTS) *.h.gch
 	$(MAKE) -C bash/ clean
 
 .PHONY: all clean build_bash
