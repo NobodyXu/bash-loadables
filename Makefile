@@ -16,7 +16,7 @@
 
 CC = clang
 
-CFLAGS = -O2 -Wno-parentheses -Wno-format-security
+CFLAGS = -O3 -s -fvisibility=hidden -Wno-parentheses -Wno-format-security
 LOCAL_CFLAGS = 
 DEFS = -DHAVE_CONFIG_H
 LOCAL_DEFS = -DSHELL

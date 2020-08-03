@@ -36,14 +36,15 @@ int template_builtin (list)
 
 /* Called when `template' is enabled and loaded from the shared object.  If this
    function returns 0, the load fails. */
-int template_builtin_load (name)
+PUBLIC int template_builtin_load (name)
     char *name;
 {
+    printf("Hello, world!");
     return (1);
 }
 
 /* Called when `template' is disabled. */
-void template_builtin_unload (name)
+PUBLIC void template_builtin_unload (name)
      char *name;
 {
 }
@@ -55,7 +56,7 @@ char *template_doc[] = {
     (char *)NULL
 };
 
-struct builtin template_struct = {
+PUBLIC struct builtin template_struct = {
     "template",         /* builtin name */
     template_builtin,       /* function implementing the builtin */
     BUILTIN_ENABLED,        /* initial flags for builtin */
