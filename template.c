@@ -2,13 +2,13 @@
 
 /* See Makefile for compilation details. */
 #include "bash/config.h"
+#include "bashansi.h"
+#include "loadables.h"
 
 #include <unistd.h>
-#include "bashansi.h"
 #include <stdio.h>
 #include <errno.h>
 
-#include "loadables.h"
 
 extern char *strerror ();
 
