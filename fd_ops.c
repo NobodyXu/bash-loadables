@@ -50,7 +50,10 @@ int memfd_create_builtin (WORD_LIST *list)
     int fd = memfd_create(var, flags);
     if (fd == -1) {
         perror("memfd_create failed");
-        return 1;
+        if (errno == EFAULT || errno == EINVAL)
+            return 2;
+        else
+            return 1;
     }
 
     _Static_assert (sizeof(int) <= 4, "sizeof(int) is bigged than 4 bytes");
@@ -70,6 +73,9 @@ PUBLIC struct builtin memfd_create_struct = {
         "NOTE that if swap is enabled, this anonymous can be swapped onto disk.",
         "",
         "Pass -C to enable CLOEXEC.",
+        "",
+        "On resource exhaustion, return 1.",
+        "On any other error, return EX_SOFTWARE", 
         (char*) NULL
     },                          /* array of long documentation strings. */
     "memfd_create [-C] VAR",    /* usage synopsis; becomes short_doc */
