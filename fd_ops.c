@@ -1,20 +1,24 @@
 /* fd_ops - loadable builtin that defines fd-related functions */
 
+#define _LARGEFILE64_SOURCE
+
 /* See Makefile for compilation details. */
 #include "bash/config.h"
 
-#include <unistd.h>
 #include "bashansi.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 
 #include "loadables.h"
 
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE
 #endif
+
 #include <sys/mman.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include <errno.h>
 
 void int2str(int integer, char buffer[11])
@@ -51,7 +55,7 @@ int memfd_create_builtin (WORD_LIST *list)
     if (fd == -1) {
         perror("memfd_create failed");
         if (errno == EFAULT || errno == EINVAL)
-            return 2;
+            return 100;
         else
             return 1;
     }
@@ -75,7 +79,7 @@ PUBLIC struct builtin memfd_create_struct = {
         "Pass -C to enable CLOEXEC.",
         "",
         "On resource exhaustion, return 1.",
-        "On any other error, return EX_SOFTWARE", 
+        "On any other error, return 100", 
         (char*) NULL
     },                          /* array of long documentation strings. */
     "memfd_create [-C] VAR",    /* usage synopsis; becomes short_doc */
