@@ -12,8 +12,7 @@
 
 extern char *strerror ();
 
-int template_builtin (list)
-    WORD_LIST *list;
+int template_builtin (WORD_LIST *list)
 {
     int rval;
 
@@ -49,8 +48,7 @@ PUBLIC struct builtin template_struct = {
 
 /* Called when `template' is enabled and loaded from the shared object.  If this
    function returns 0, the load fails. */
-PUBLIC int template_builtin_load (name)
-    char *name;
+PUBLIC int template_builtin_load (char *name)
 {
     printf("Hello, world!");
     return (1);
