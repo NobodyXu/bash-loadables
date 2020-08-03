@@ -46,15 +46,20 @@ PUBLIC struct builtin template_struct = {
     0                       /* reserved for internal use */
 };
 
-/* Called when `template' is enabled and loaded from the shared object.  If this
-   function returns 0, the load fails. */
+/**
+ * Called when `template' is enabled and loaded from the shared object.
+ *
+ * If this function returns 0, the load fails.
+ */
 PUBLIC int template_builtin_load (char *name)
 {
     printf("Hello, world!");
     return (1);
 }
 
-/* Called when `template' is disabled. */
+/**
+ * Called when `template' is disabled.
+ */
 PUBLIC void template_builtin_unload (name)
      char *name;
 {}
