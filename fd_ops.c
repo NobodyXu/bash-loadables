@@ -27,11 +27,6 @@
 #include <fcntl.h>
 #include <errno.h>
 
-void int2str(int integer, char buffer[11])
-{
-    snprintf(buffer, 11, "%d", integer);
-}
-
 /**
  * @param str must not be null
  * @param integer must be a valid pointer.
@@ -123,6 +118,20 @@ int to_argv(WORD_LIST *l, int argc, const char *argv[])
     return to_argv_opt(l, argc, 0, argv);
 }
 
+#define STR_IMPL_(x) #x      //stringify argument
+#define STR(x) STR_IMPL_(x)  //indirection to expand argument macros
+
+/**
+ * @param var must not be nullptr
+ * @param flags can be 0.
+ */
+void bind_int_to_var(const char *var, int integer, int flags)
+{
+    char buffer[sizeof(STR(INT_MAX))];
+    snprintf(buffer, sizeof(buffer), "%d", integer);
+    bind_variable(var, buffer, flags);
+}
+
 int memfd_create_builtin(WORD_LIST *list)
 {
     reset_internal_getopt();
@@ -156,11 +165,7 @@ int memfd_create_builtin(WORD_LIST *list)
             return 1;
     }
 
-    _Static_assert (sizeof(int) <= 4, "sizeof(int) is bigged than 4 bytes");
-
-    char buffer[11]; // 10 bytes is enough for 4-byte unsigned int
-    int2str(fd, buffer);
-    bind_variable(var, buffer, 0);
+    bind_int_to_var(var, fd, 0);
 
     return (EXECUTION_SUCCESS);
 }
@@ -179,6 +184,96 @@ PUBLIC struct builtin memfd_create_struct = {
         (char*) NULL
     },                          /* array of long documentation strings. */
     "memfd_create [-C] VAR",    /* usage synopsis; becomes short_doc */
+    0                           /* reserved for internal use */
+};
+
+int create_tmpfile_builtin(WORD_LIST *list)
+{
+    reset_internal_getopt();
+
+    int flags = O_TMPFILE;
+    for (int opt; (opt = internal_getopt(list, "CE")) != -1; ) {
+        switch (opt) {
+        case 'C':
+            flags |= O_CLOEXEC;
+            break;
+
+        case 'E':
+            flags |= O_EXCL;
+            break;
+
+        CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
+    }
+    list = loptend;
+
+    const char *argv[4];
+    int opt_argc = to_argv_opt(list, 3, 1, argv);
+    if (opt_argc == -1)
+        return (EX_USAGE);
+
+    if (strcasecmp(argv[2], "rw") == 0)
+        flags |= O_RDWR;
+    else if (strcasecmp(argv[2], "w") == 0)
+        flags |= O_WRONLY;
+    else {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    mode_t mode;
+    if (opt_argc == 1) {
+        if (str2mode(argv[3], &mode) == -1)
+            return (EX_USAGE);
+    } else
+        mode = S_IRWXU;
+
+    int fd;
+    do {
+        fd = open(argv[1], flags, mode);
+    } while (fd == -1 && errno == EINTR);
+
+    if (fd == -1) {
+        perror("open failed");
+        if (errno == EISDIR)
+            return 128;
+        else if (errno == EOPNOTSUPP)
+            return 129;
+        else
+            return 1;
+    }
+
+    bind_int_to_var(argv[0], fd, 0);
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin create_tmpfile_struct = {
+    "create_tmpfile",             /* builtin name */
+    create_tmpfile_builtin,       /* function implementing the builtin */
+    BUILTIN_ENABLED,              /* initial flags for builtin */
+    (char*[]){
+        "Create an unnamed tempoary regular file in dir and store its fd in variable $VAR.",
+        "An unnamed inode will be created in that directory's filesystem.",
+        "Anything written to the resulting file will be lost when the last file descriptor is closed, ", 
+        "unless the file is given a name.",
+        "",
+        "Pass '-C' to set close-on-exec flag on fd.",
+        "Pass '-E' to disable linking this fd to an actual name.",
+        "",
+        "The 3rd arg, rw/w is case insensitive.",
+        "The 4th arg mode is optional. It is default to be 700",
+        "",
+        "On error:",
+        "    If this kernel does not support O_TMPFILE, returns 128;",
+        "    If this filesystem does not support O_TMPFILE, returns 129;",
+        "    On any other error, return 1", 
+        (char*) NULL
+    },                          /* array of long documentation strings. */
+    "create_tmpfile [-CE] VAR dir rw/w [mode]",
     0                           /* reserved for internal use */
 };
 
