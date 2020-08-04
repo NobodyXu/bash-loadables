@@ -257,7 +257,7 @@ PUBLIC struct builtin create_tmpfile_struct = {
     create_tmpfile_builtin,       /* function implementing the builtin */
     BUILTIN_ENABLED,              /* initial flags for builtin */
     (char*[]){
-        "Create an unnamed tempoary regular file in dir and store its fd in variable $VAR.",
+        "Create an unnamed tempoary regular file in /path/to/dir and store its fd in variable $VAR.",
         "An unnamed inode will be created in that directory's filesystem.",
         "Anything written to the resulting file will be lost when the last file descriptor is closed, ", 
         "unless the file is given a name.",
@@ -274,7 +274,7 @@ PUBLIC struct builtin create_tmpfile_struct = {
         "    On any other error, return 1", 
         (char*) NULL
     },                          /* array of long documentation strings. */
-    "create_tmpfile [-CE] VAR dir rw/w [mode]",
+    "create_tmpfile [-CE] VAR /path/to/dir rw/w [mode]",
     0                           /* reserved for internal use */
 };
 
