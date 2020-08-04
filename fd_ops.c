@@ -1,9 +1,16 @@
 /* fd_ops - loadable builtin that defines fd-related functions */
 
-#define _LARGEFILE64_SOURCE
+#define _LARGEFILE64_SOURCE // for lseek64
+
+// For fexecve
+#define _POSIX_C_SOURCE 200809L
 
 /* See Makefile for compilation details. */
 #include "bash/config.h"
+
+#ifndef  _GNU_SOURCE
+# define _GNU_SOURCE
+#endif
 
 #include "bashansi.h"
 #include "loadables.h"
@@ -12,14 +19,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifndef _GNU_SOURCE
-# define _GNU_SOURCE
-#endif
-
 #include <sys/mman.h>
 #include <sys/types.h>
-#include <unistd.h>
 
+#include <unistd.h>
 #include <errno.h>
 
 void int2str(int integer, char buffer[11])
@@ -207,11 +210,76 @@ PUBLIC struct builtin lseek_struct = {
     0                           /* reserved for internal use */
 };
 
+int fexecve_builtin(WORD_LIST *list)
+{
+    reset_internal_getopt();
+    if (no_options(list)) // If options present
+        return (EX_USAGE);
+    list = loptend;
+
+    if (list == NULL) {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    int fd;
+    if (str2fd(list->word->word, &fd) == -1)
+        return (EX_USAGE);
+    list = list->next;
+
+    int argc = list_length(list);
+    if (argc == 0) {
+        builtin_usage();
+        return (EX_USAGE);
+    } else if (argc > sysconf(_SC_ARG_MAX)) {
+        fputs("Too many arguments!", stderr);
+        return (EX_USAGE);
+    }
+
+    {
+        // Use varadic array, since the maximum size of 
+        // argv is (sizeof 1 / 4 of the stack) + 1.
+        char *argv[argc + 1];
+
+        to_argv(list, argc, (const char**) argv);
+        argv[argc] = NULL;
+
+        fexecve(fd, argv, environ);
+    }
+
+    perror("fexecve failed");
+    if (errno == ENOSYS)
+        return 128;
+    else if (errno == ENOENT)
+        return 2;
+    else
+        return 1;
+}
+PUBLIC struct builtin fexecve_struct = {
+    "fexecve",                  /* builtin name */
+    fexecve_builtin,            /* function implementing the builtin */
+    BUILTIN_ENABLED,            /* initial flags for builtin */
+    (char*[]){
+        "fexecve execute file referenced by fd instead of a pathname.",
+        "",
+        "The file descriptor fd must be opened read-only (O_RDONLY) or with the O_PATH flag ", 
+        "and the caller must have permission to execute the file that it refers to.",
+        "",
+        "NOTE that if fd refers to a script, then close-on-exec flag must not set on fd.",
+        "",
+        "On error:",
+        "",
+        "    If fd is invalid, returns 1;",
+        "    If close-on-exec flag is set on fd and fd refers to a script, returns 2;",
+        "    If kernel does not provide execveat and /proc is inaccessible, returns 128.",
+        (char*) NULL
+    },                          /* array of long documentation strings. */
+    "fexecve <int> fd program_name [args...]",    /* usage synopsis; becomes short_doc */
+    0                           /* reserved for internal use */
+};
+
 int fd_ops_builtin(WORD_LIST *list)
 {
-    int rval;
-
-    rval = EXECUTION_SUCCESS;
     reset_internal_getopt();
 
     for (int opt; (opt = internal_getopt(list, "")) != -1; ) {
@@ -225,7 +293,7 @@ int fd_ops_builtin(WORD_LIST *list)
     }
     list = loptend;
 
-    return (rval);
+    return (EXECUTION_SUCCESS);
 }
 
 /**
