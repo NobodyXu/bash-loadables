@@ -66,44 +66,19 @@ int str2fd(const char *str, int *fd)
 }
 
 /**
- * Same as to_argv except it allows optional argument.
- * @return 0 on success, -1 if not enough.
- */
-int to_argv_impl(WORD_LIST **l, int argc, const char *argv[])
-{
-    for (int i = 0; i != argc; ++i) {
-        if ((*l) == NULL) {
-            builtin_usage();
-            return -1;
-        }
-
-        argv[i] = (*l)->word->word;
-        (*l) = (*l)->next;
-    }
-
-    return 0;
-}
-/**
- * @return 0 on success, -1 if not enough/too many arguments.
- */
-int to_argv(WORD_LIST *l, int argc, const char *argv[])
-{
-    if (to_argv_impl(&l, argc, argv) == -1)
-        return -1;
-
-    if (l != NULL) {
-        builtin_usage();
-        return -1;
-    }
-    return 0;
-}
-/**
  * @return number of optional arg read in on success, -1 if not enough/too many arguments.
  */
 int to_argv_opt(WORD_LIST *l, int argc, int opt_argc, const char *argv[])
 {
-    if (to_argv_impl(&l, argc, argv) == -1)
-        return -1;
+    for (int i = 0; i != argc; ++i) {
+        if (l == NULL) {
+            builtin_usage();
+            return -1;
+        }
+
+        argv[i] = l->word->word;
+        l = l->next;
+    }
 
     int i = 0;
     for (; i != opt_argc; ++i) {
@@ -118,6 +93,13 @@ int to_argv_opt(WORD_LIST *l, int argc, int opt_argc, const char *argv[])
         return -1;
     }
     return i;
+}
+/**
+ * @return 0 on success, -1 if not enough/too many arguments.
+ */
+int to_argv(WORD_LIST *l, int argc, const char *argv[])
+{
+    return to_argv_opt(l, argc, 0, argv);
 }
 
 int memfd_create_builtin(WORD_LIST *list)
