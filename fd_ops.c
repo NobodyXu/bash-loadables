@@ -89,7 +89,11 @@ int to_argv_impl(WORD_LIST **l, int argc, const char *argv[])
 int to_argv(WORD_LIST *l, int argc, const char *argv[])
 {
     to_argv_impl(&l, argc, argv);
-    return l != NULL ? -1 : 0;
+    if (l != NULL) {
+        builtin_usage();
+        return -1;
+    }
+    return 0;
 }
 /**
  * @return number of optional arg read in on success, -1 if not enough/too many arguments.
@@ -106,7 +110,11 @@ int to_argv_opt(WORD_LIST *l, int argc, int opt_argc, const char *argv[])
         argv[i] = l->word->word;
         l = l->next;
     }
-    return l != NULL ? -1 : i;
+    if (l != NULL) {
+        builtin_usage();
+        return -1;
+    }
+    return i;
 }
 
 int memfd_create_builtin(WORD_LIST *list)
