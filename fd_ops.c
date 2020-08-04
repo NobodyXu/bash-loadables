@@ -21,8 +21,10 @@
 
 #include <sys/mman.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 
 void int2str(int integer, char buffer[11])
@@ -50,8 +52,8 @@ int str2int(const char *str, int *integer)
 
 /**
  * @param str must not be null
- * @param integer must be a valid pointer.
- *                If str2fd failed, its value is unchanged.
+ * @param fd must be a valid pointer.
+ *           If str2fd failed, its value is unchanged.
  * @return 0 on success, -1 if not enough/too many arguments.
  */
 int str2fd(const char *str, int *fd)
@@ -62,6 +64,25 @@ int str2fd(const char *str, int *fd)
         builtin_usage();
         return -1;
     }
+    return 0;
+}
+
+/**
+ * @param str must not be null
+ * @param mode must be a valid pointer.
+ *             If str2fd failed, its value is unchanged.
+ * @return 0 on success, -1 if not enough/too many arguments.
+ */
+int str2mode(const char *str, mode_t *mode)
+{
+    intmax_t result;
+    if (legal_number(str, &result) == 0 || result < 0 || result > (S_ISUID | S_IRWXU | S_IRWXG | S_IRWXO)) {
+        builtin_usage();
+        return -1;
+    }
+ 
+    *mode = result;
+
     return 0;
 }
 
