@@ -106,7 +106,7 @@ int to_argv_opt(WORD_LIST *l, int argc, int opt_argc, const char *argv[])
         if (l == NULL)
             return i;
 
-        argv[i] = l->word->word;
+        argv[argc + i] = l->word->word;
         l = l->next;
     }
     if (l != NULL) {
