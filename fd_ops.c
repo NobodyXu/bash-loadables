@@ -83,7 +83,7 @@ int to_argv(WORD_LIST *l, int argc, const char *argv[])
     return l != NULL ? -1 : 0;
 }
 
-int memfd_create_builtin (WORD_LIST *list)
+int memfd_create_builtin(WORD_LIST *list)
 {
     reset_internal_getopt();
 
@@ -92,6 +92,7 @@ int memfd_create_builtin (WORD_LIST *list)
         switch (opt) {
         case 'C':
             flags |= MFD_CLOEXEC;
+            break;
 
         CASE_HELPOPT;
 
