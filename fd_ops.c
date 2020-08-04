@@ -174,13 +174,14 @@ PUBLIC struct builtin memfd_create_struct = {
     memfd_create_builtin,       /* function implementing the builtin */
     BUILTIN_ENABLED,            /* initial flags for builtin */
     (char*[]){
-        "Create an anonymous file in RAM and store it in variable $VAR.",
+        "Create an anonymous file in RAM and store its fd in variable $VAR.",
         "NOTE that if swap is enabled, this anonymous can be swapped onto disk.",
         "",
         "Pass -C to enable CLOEXEC.",
         "",
-        "On resource exhaustion, return 1.",
-        "On any other error, return 100", 
+        "On error:",
+        "    On resource exhaustion, return 1.",
+        "    On any other error, return 100", 
         (char*) NULL
     },                          /* array of long documentation strings. */
     "memfd_create [-C] VAR",    /* usage synopsis; becomes short_doc */
