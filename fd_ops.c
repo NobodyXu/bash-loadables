@@ -88,7 +88,9 @@ int to_argv_impl(WORD_LIST **l, int argc, const char *argv[])
  */
 int to_argv(WORD_LIST *l, int argc, const char *argv[])
 {
-    to_argv_impl(&l, argc, argv);
+    if (to_argv_impl(&l, argc, argv) == -1)
+        return -1;
+
     if (l != NULL) {
         builtin_usage();
         return -1;
@@ -100,8 +102,9 @@ int to_argv(WORD_LIST *l, int argc, const char *argv[])
  */
 int to_argv_opt(WORD_LIST *l, int argc, int opt_argc, const char *argv[])
 {
-    to_argv_impl(&l, argc, argv);
-    
+    if (to_argv_impl(&l, argc, argv) == -1)
+        return -1;
+
     int i = 0;
     for (; i != opt_argc; ++i) {
         if (l == NULL)
