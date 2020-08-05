@@ -73,19 +73,20 @@ int str2uint(const char *str, unsigned *integer)
 /**
  * @param str must not be null
  * @param integer must be a valid pointer.
- *                If str2fd failed, its value is unchanged.
- * @return 0 on success, -1 if not enough/too many arguments.
+ *                If str2pint failed, its value is unchanged.
+ * @return 0 on success, -1 if not integer, -2 if out or range.
  *
- * convert str to positive int
+ * convert str to positive int.
+ *
+ * NOTE that this function does not call builtin_usage on error.
  */
 int str2pint(const char *str, int *integer)
 {
-    if (str2int(str, integer) == -1)
-        return -1;
-    if (*integer < 0) {
-        builtin_usage();
-        return -1;
-    }
+    int result = str2int(str, integer);
+    if (result < 0)
+        return result;
+    if (*integer < 0)
+        return -2;
     return 0;
 }
 
@@ -97,7 +98,12 @@ int str2pint(const char *str, int *integer)
  */
 int str2fd(const char *str, int *fd)
 {
-    return str2pint(str, fd);
+    int result = str2pint(str, fd);
+    if (result < 0) {
+        builtin_usage();
+        return -1;
+    }
+    return 0;
 }
 
 /**
