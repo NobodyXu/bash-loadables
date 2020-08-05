@@ -774,3 +774,51 @@ PUBLIC struct builtin fchown_struct = {
     "fchown <int> fd uid/username:gid/groupname",      /* usage synopsis; becomes short_doc */
     0                           /* reserved for internal use */
 };
+
+int getresid_impl(WORD_LIST *list, int (*getter)(uint32_t*, uint32_t*, uint32_t*))
+{
+    if (check_no_options(list) == -1)
+        return (EX_USAGE);
+
+    const char *argv[3];
+    if (to_argv(list, 3, argv) == -1)
+        return (EX_USAGE);
+
+    uint32_t ids[3];
+    getter(ids, ids + 1, ids + 2);
+
+    for (int i = 0; i != 3; ++i)
+        bind_int_to_var(argv[i], ids[i], 0);
+
+    return (EXECUTION_SUCCESS);
+}
+int getresuid_builtin(WORD_LIST *list)
+{
+    return getresid_impl(list, getresuid);
+}
+int getresgid_builtin(WORD_LIST *list)
+{
+    return getresid_impl(list, getresgid);
+}
+PUBLIC struct builtin getresuid_struct = {
+    "getresuid",                 /* builtin name */
+    getresuid_builtin,              /* function implementing the builtin */
+    BUILTIN_ENABLED,             /* initial flags for builtin */
+    (char*[]){
+        "get real uid, effective uid and saved uid stored in var1, var2 and var3 respectively.",
+        (char*) NULL
+    },                          /* array of long documentation strings. */
+    "getresuid var1 var2 var3",      /* usage synopsis; becomes short_doc */
+    0                           /* reserved for internal use */
+};
+PUBLIC struct builtin getresgid_struct = {
+    "getresgid",                 /* builtin name */
+    getresgid_builtin,              /* function implementing the builtin */
+    BUILTIN_ENABLED,             /* initial flags for builtin */
+    (char*[]){
+        "get real gid, effective gid and saved gid stored in var1, var2 and var3 respectively.",
+        (char*) NULL
+    },                          /* array of long documentation strings. */
+    "getresgid var1 var2 var3",      /* usage synopsis; becomes short_doc */
+    0                           /* reserved for internal use */
+};
