@@ -4,6 +4,7 @@
 
 // For fexecve
 #define _POSIX_C_SOURCE 200809L
+#define _ATFILE_SOURCE
 
 /* See Makefile for compilation details. */
 #include "bash/config.h"
@@ -116,6 +117,21 @@ int to_argv_opt(WORD_LIST *l, int argc, int opt_argc, const char *argv[])
 int to_argv(WORD_LIST *l, int argc, const char *argv[])
 {
     return to_argv_opt(l, argc, 0, argv);
+}
+
+/**
+ * @return -1 if failed, 0 if succeeds.
+ *
+ * This function call will also reset_internal_getopt and set list = loptend
+ * for you.
+ */
+int check_no_options(WORD_LIST *list)
+{
+    reset_internal_getopt();
+    if (no_options(list)) // If options present
+        return -1;
+    list = loptend;
+    return 0;
 }
 
 #define STR_IMPL_(x) #x      //stringify argument
@@ -280,10 +296,8 @@ PUBLIC struct builtin create_tmpfile_struct = {
 
 int lseek_builtin(WORD_LIST *list)
 {
-    reset_internal_getopt();
-    if (no_options(list)) // If options present
+    if (check_no_options(list) == -1)
         return (EX_USAGE);
-    list = loptend;
 
     const char *argv[3];
     if (to_argv(list, 3, argv) == -1)
@@ -349,10 +363,8 @@ PUBLIC struct builtin lseek_struct = {
 
 int fexecve_builtin(WORD_LIST *list)
 {
-    reset_internal_getopt();
-    if (no_options(list)) // If options present
+    if (check_no_options(list) == -1)
         return (EX_USAGE);
-    list = loptend;
 
     if (list == NULL) {
         builtin_usage();
@@ -412,6 +424,56 @@ PUBLIC struct builtin fexecve_struct = {
         (char*) NULL
     },                          /* array of long documentation strings. */
     "fexecve <int> fd program_name [args...]",    /* usage synopsis; becomes short_doc */
+    0                           /* reserved for internal use */
+};
+
+int flink_builtin(WORD_LIST *list)
+{
+    if (check_no_options(list) == -1)
+        return (EX_USAGE);
+
+    const char *argv[2];
+    if (to_argv(list, 2, argv) == -1)
+        return (EX_USAGE);
+
+    int fd;
+    if (str2fd(argv[0], &fd) == -1)
+        return (EX_USAGE);
+    const char *newpath = argv[1];
+
+    int result = linkat(fd, "", AT_FDCWD, newpath, AT_EMPTY_PATH);
+    if (result == -1) {
+        if (errno == EINVAL) {
+            perror("flink not supported on this kernel");
+            return 128;
+        } else {
+            perror("linkat failed");
+            return 1;
+        }
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin flink_struct = {
+    "flink",                    /* builtin name */
+    flink_builtin,              /* function implementing the builtin */
+    BUILTIN_ENABLED,            /* initial flags for builtin */
+    (char*[]){
+        "flink can be used to create a hard link to a fd whose count of inode isn't zero or",
+        "a tempfile created by create_tmpfile without -E option.",
+        "",
+        "NOTE that this builtin requires CAP_DAC_READ_SEARCH capability.",
+        "",
+        "If you do not have CAP_DAC_READ_SEARCH, then you should consider ",
+        "using linking /proc if it is accessible.",
+        "",
+        "On error:",
+        "",
+        "    If flink is not supported on this kernel, returns 128;",
+        "    Otherwise, returns 128.",
+        (char*) NULL
+    },                          /* array of long documentation strings. */
+    "flink <int> fd path",      /* usage synopsis; becomes short_doc */
     0                           /* reserved for internal use */
 };
 
