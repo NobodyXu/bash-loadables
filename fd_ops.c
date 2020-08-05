@@ -52,15 +52,17 @@ int str2int(const char *str, int *integer)
  * @param str must not be null
  * @param integer must be a valid pointer.
  *                If str2int failed, its value is unchanged.
- * @return 0 on success, -1 if not enough/too many arguments.
+ * @return 0 on success, -1 if not integer, -2 if too large.
+ *
+ * NOTE that this function does not call builtin_usage on error.
  */
 int str2uint(const char *str, unsigned *integer)
 {
     intmax_t result;
-    if (legal_number(str, &result) == 0 || result > UINT_MAX || result < 0) {
-        builtin_usage();
+    if (legal_number(str, &result) == 0)
         return -1;
-    }
+    else if (result > UINT_MAX || result < 0)
+        return -2;
  
     *integer = result;
     return 0;
