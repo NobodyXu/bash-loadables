@@ -337,17 +337,6 @@ int parse_ids(const char *arg, uid_t *uid, gid_t *gid)
 #define STR_IMPL_(x) #x      //stringify argument
 #define STR(x) STR_IMPL_(x)  //indirection to expand argument macros
 
-/**
- * @param var must not be nullptr
- * @param flags can be 0.
- */
-void bind_int_to_var(const char *var, int integer, int flags)
-{
-    char buffer[sizeof(STR(INT_MAX))];
-    snprintf(buffer, sizeof(buffer), "%d", integer);
-    bind_variable(var, buffer, flags);
-}
-
 int memfd_create_builtin(WORD_LIST *list)
 {
     reset_internal_getopt();
@@ -381,7 +370,7 @@ int memfd_create_builtin(WORD_LIST *list)
             return 1;
     }
 
-    bind_int_to_var(var, fd, 0);
+    bind_var_to_int((char*) var, fd);
 
     return (EXECUTION_SUCCESS);
 }
@@ -464,7 +453,7 @@ int create_tmpfile_builtin(WORD_LIST *list)
             return 1;
     }
 
-    bind_int_to_var(argv[0], fd, 0);
+    bind_var_to_int((char*) argv[0], fd);
 
     return (EXECUTION_SUCCESS);
 }
@@ -795,7 +784,7 @@ int getresid_impl(WORD_LIST *list, int (*getter)(uint32_t*, uint32_t*, uint32_t*
     getter(ids, ids + 1, ids + 2);
 
     for (int i = 0; i != 3; ++i)
-        bind_int_to_var(argv[i], ids[i], 0);
+        bind_var_to_int((char*) argv[i], ids[i]);
 
     return (EXECUTION_SUCCESS);
 }
