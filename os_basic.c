@@ -238,6 +238,11 @@ int parse_id_impl(unsigned *id, const char *name, void* (*get_f)(const char*), s
                   /* meta info for printing on error */
                   const char *function_name, const char *name_type, const char *id_type)
 {
+    if (strcmp(name, "-1") == 0) {
+        *id = -1;
+        return 0;
+    }
+
     int result = str2uint32(name, id);
     if (result == -1) {
         char *ret = get_pg_impl(get_f, name, function_name, name_type);
@@ -752,6 +757,8 @@ PUBLIC struct builtin fchown_struct = {
         "'uid/username:gid/groupname', ':gid/groupname'.",
         "In other words, uid/username and gid/groupname can be omitted if you don't want to",
         "change them.",
+        "",
+        "If -1 is passed, then the correspond id is not changed.",
         "",
         "NOTE that uid/gid can be arbitary number permitted by the system.",
         "",
