@@ -829,3 +829,79 @@ PUBLIC struct builtin getresgid_struct = {
     "getresgid var1 var2 var3",      /* usage synopsis; becomes short_doc */
     0                           /* reserved for internal use */
 };
+
+int setresid_impl(WORD_LIST *list, int (*setter)(uint32_t, uint32_t, uint32_t), const char *function_name, 
+                  int (*parser)(uint32_t*, const char*))
+{
+    if (check_no_options(list) == -1)
+        return (EX_USAGE);
+
+    const char *argv[3];
+    if (to_argv(list, 3, argv) == -1)
+        return (EX_USAGE);
+
+    uint32_t ids[3];
+    for (int i = 0; i != 3; ++i)
+        parser(ids + i, argv[i]);
+
+    int result = setter(ids[0], ids[1], ids[2]);
+    if (result == -1) {
+        warn("%s failed", function_name);
+        if (errno == EAGAIN)
+            return 1;
+        else
+            return 2;
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+int setresuid_builtin(WORD_LIST *list)
+{
+    return setresid_impl(list, setresuid, "setresuid", parse_user);
+}
+int setresgid_builtin(WORD_LIST *list)
+{
+    return setresid_impl(list, setresgid, "setresgid", parse_group);
+}
+PUBLIC struct builtin setresuid_struct = {
+    "setresuid",                 /* builtin name */
+    setresuid_builtin,              /* function implementing the builtin */
+    BUILTIN_ENABLED,             /* initial flags for builtin */
+    (char*[]){
+        "set real uid/username, effective uid/username and saved uid/username ",
+        "according to stored in var1, var2 and var3 respectively.",
+        "",
+        "Pass -1 then the corresponding value is not changed.",
+        "",
+        "On error:",
+        "    If there's a temporary failure allocating necessry kernel dat structures or ",
+        "    RLIMIT_NPROC resource limit is reached, returns 1.",
+        "    ",
+        "    If at least one of the ID is not valid in this user namespace or the operation is not",
+        "    permitted (lacks CAP_SETUID or CAP_SETGID), returns 2.",
+        (char*) NULL
+    },                          /* array of long documentation strings. */
+    "setresuid var1 var2 var3",      /* usage synopsis; becomes short_doc */
+    0                           /* reserved for internal use */
+};
+PUBLIC struct builtin setresgid_struct = {
+    "setresgid",                 /* builtin name */
+    setresgid_builtin,              /* function implementing the builtin */
+    BUILTIN_ENABLED,             /* initial flags for builtin */
+    (char*[]){
+        "set real gid/groupname, effective gid/groupname and saved gid/groupname ",
+        "according to stored in var1, var2 and var3 respectively.",
+        "",
+        "Pass -1 then the corresponding value is not changed.",
+        "",
+        "On error:",
+        "    If there's a temporary failure allocating necessry kernel dat structures or ",
+        "    RLIMIT_NPROC resource limit is reached, returns 1.",
+        "    ",
+        "    If at least one of the ID is not valid in this user namespace or the operation is not",
+        "    permitted (lacks CAP_SETUID or CAP_SETGID), returns 2.",
+        (char*) NULL
+    },                          /* array of long documentation strings. */
+    "getresgid var1 var2 var3",      /* usage synopsis; becomes short_doc */
+    0                           /* reserved for internal use */
+};
