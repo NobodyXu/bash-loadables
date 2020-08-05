@@ -53,7 +53,7 @@ int str2int(const char *str, int *integer)
 /**
  * @param str must not be null
  * @param integer must be a valid pointer.
- *                If str2int failed, its value is unchanged.
+ *                If str2uint failed, its value is unchanged.
  * @return 0 on success, -1 if not integer, -2 if too large.
  *
  * NOTE that this function does not call builtin_usage on error.
