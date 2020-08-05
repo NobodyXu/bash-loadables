@@ -23,7 +23,7 @@ DEFS = -DHAVE_CONFIG_H
 LOCAL_DEFS = -DSHELL
 
 CCFLAGS = $(DEFS) $(LOCAL_DEFS) $(LOCAL_CFLAGS) $(CFLAGS)
-LDFLAGS = -shared -Wl,-soname,$@ -Wl,-icf=all
+LDFLAGS = -shared -Wl,-soname,$@ -Wl,-icf=all,--gc-sections
 
 INC := -Ibash -Ibash/lib -Ibash/builtins -Ibash/include -Ibash/example
 
