@@ -247,7 +247,7 @@ int create_tmpfile_builtin(WORD_LIST *list)
         if (str2mode(argv[3], &mode) == -1)
             return (EX_USAGE);
     } else
-        mode = S_IRWXU;
+        mode = S_IRUSR | S_IWUSR;
 
     int fd;
     do {
