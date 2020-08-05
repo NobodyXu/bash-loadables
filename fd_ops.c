@@ -347,7 +347,7 @@ int memfd_create_builtin(WORD_LIST *list)
 
     int fd = memfd_create(var, flags);
     if (fd == -1) {
-        perror("memfd_create failed");
+        warn("memfd_create failed");
         if (errno == EFAULT || errno == EINVAL)
             return 100;
         else
@@ -428,7 +428,7 @@ int create_tmpfile_builtin(WORD_LIST *list)
     } while (fd == -1 && errno == EINTR);
 
     if (fd == -1) {
-        perror("open failed");
+        warn("open failed");
         if (errno == EISDIR)
             return 128;
         else if (errno == EOPNOTSUPP)
@@ -500,7 +500,7 @@ int lseek_builtin(WORD_LIST *list)
 
     off64_t result = lseek64(fd, offset, whence);
     if (result == (off64_t) -1) {
-        perror("lseek64 failed");
+        warn("lseek64 failed");
         return 1;
     }
 
@@ -569,7 +569,7 @@ int fexecve_builtin(WORD_LIST *list)
         fexecve(fd, argv, environ);
     }
 
-    perror("fexecve failed");
+    warn("fexecve failed");
     if (errno == ENOSYS)
         return 128;
     else if (errno == ENOENT)
@@ -617,10 +617,10 @@ int flink_builtin(WORD_LIST *list)
     int result = linkat(fd, "", AT_FDCWD, newpath, AT_EMPTY_PATH);
     if (result == -1) {
         if (errno == EINVAL) {
-            perror("flink not supported on this kernel");
+            warn("flink not supported on this kernel");
             return 128;
         } else {
-            perror("linkat failed");
+            warn("linkat failed");
             return 1;
         }
     }
@@ -669,7 +669,7 @@ int fchmod_builtin(WORD_LIST *list)
 
     int result = fchmod(fd, mode);
     if (result == -1) {
-        perror("fchmod failed");
+        warn("fchmod failed");
         return 1;
     }
 
@@ -707,7 +707,7 @@ int fchown_builtin(WORD_LIST *list)
 
     int result = fchown(fd, uid, gid);
     if (result == -1) {
-        perror("fchmod failed");
+        warn("fchmod failed");
         return 1;
     }
 
