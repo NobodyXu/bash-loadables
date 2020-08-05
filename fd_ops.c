@@ -50,19 +50,50 @@ int str2int(const char *str, int *integer)
 
 /**
  * @param str must not be null
+ * @param integer must be a valid pointer.
+ *                If str2int failed, its value is unchanged.
+ * @return 0 on success, -1 if not enough/too many arguments.
+ */
+int str2uint(const char *str, unsigned *integer)
+{
+    intmax_t result;
+    if (legal_number(str, &result) == 0 || result > UINT_MAX || result < 0) {
+        builtin_usage();
+        return -1;
+    }
+ 
+    *integer = result;
+    return 0;
+}
+
+/**
+ * @param str must not be null
+ * @param integer must be a valid pointer.
+ *                If str2fd failed, its value is unchanged.
+ * @return 0 on success, -1 if not enough/too many arguments.
+ *
+ * convert str to positive int
+ */
+int str2pint(const char *str, int *integer)
+{
+    if (str2int(str, integer) == -1)
+        return -1;
+    if (*integer < 0) {
+        builtin_usage();
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ * @param str must not be null
  * @param fd must be a valid pointer.
  *           If str2fd failed, its value is unchanged.
  * @return 0 on success, -1 if not enough/too many arguments.
  */
 int str2fd(const char *str, int *fd)
 {
-    if (str2int(str, fd) == -1)
-        return -1;
-    if (*fd < 0) {
-        builtin_usage();
-        return -1;
-    }
-    return 0;
+    return str2pint(str, fd);
 }
 
 /**
