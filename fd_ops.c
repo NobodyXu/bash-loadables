@@ -6,6 +6,8 @@
 #define _POSIX_C_SOURCE 200809L
 #define _ATFILE_SOURCE
 
+#define _XOPEN_SOURCE 700 // For fchmod
+
 /* See Makefile for compilation details. */
 #include "bash/config.h"
 
@@ -474,6 +476,43 @@ PUBLIC struct builtin flink_struct = {
         (char*) NULL
     },                          /* array of long documentation strings. */
     "flink <int> fd path",      /* usage synopsis; becomes short_doc */
+    0                           /* reserved for internal use */
+};
+
+int fchmod_builtin(WORD_LIST *list)
+{
+    if (check_no_options(list) == -1)
+        return (EX_USAGE);
+
+    const char *argv[2];
+    if (to_argv(list, 2, argv) == -1)
+        return (EX_USAGE);
+
+    int fd;
+    if (str2fd(argv[0], &fd) == -1)
+        return (EX_USAGE);
+
+    mode_t mode;
+    if (str2mode(argv[1], &mode) == -1)
+        return (EX_USAGE);
+
+    int result = fchmod(fd, mode);
+    if (result == -1) {
+        perror("fchmod failed");
+        return 1;
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin fchmod_struct = {
+    "fchmod",                    /* builtin name */
+    fchmod_builtin,              /* function implementing the builtin */
+    BUILTIN_ENABLED,             /* initial flags for builtin */
+    (char*[]){
+        "fchmod changes mode regarding the fd",
+        (char*) NULL
+    },                          /* array of long documentation strings. */
+    "flink <int> fd mode",      /* usage synopsis; becomes short_doc */
     0                           /* reserved for internal use */
 };
 
