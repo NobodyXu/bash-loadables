@@ -44,7 +44,7 @@ loadables.h.gch: loadables.h
 	$(MAKE) -C bash/
 	$(CC) $(CCFLAGS) $(INC) $<
 
-elean:
+clean:
 	rm -f $(OUTS) *.h.gch
 	$(MAKE) -C bash/ clean
 
