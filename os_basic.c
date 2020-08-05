@@ -801,10 +801,16 @@ int getresid_impl(WORD_LIST *list, int (*getter)(uint32_t*, uint32_t*, uint32_t*
 }
 int getresuid_builtin(WORD_LIST *list)
 {
+    _Static_assert(sizeof(uid_t) == sizeof(uint32_t), "not supported!");
+    _Static_assert((uid_t) -1 > 0, "not supported!");
+
     return getresid_impl(list, getresuid);
 }
 int getresgid_builtin(WORD_LIST *list)
 {
+    _Static_assert(sizeof(gid_t) == sizeof(uint32_t), "not supported!");
+    _Static_assert((gid_t) -1 > 0, "not supported!");
+
     return getresid_impl(list, getresgid);
 }
 PUBLIC struct builtin getresuid_struct = {
@@ -857,10 +863,16 @@ int setresid_impl(WORD_LIST *list, int (*setter)(uint32_t, uint32_t, uint32_t), 
 }
 int setresuid_builtin(WORD_LIST *list)
 {
+    _Static_assert(sizeof(uid_t) == sizeof(uint32_t), "not supported!");
+    _Static_assert((uid_t) -1 > 0, "not supported!");
+
     return setresid_impl(list, setresuid, "setresuid", parse_user);
 }
 int setresgid_builtin(WORD_LIST *list)
 {
+    _Static_assert(sizeof(gid_t) == sizeof(uint32_t), "not supported!");
+    _Static_assert((gid_t) -1 > 0, "not supported!");
+
     return setresid_impl(list, setresgid, "setresgid", parse_group);
 }
 PUBLIC struct builtin setresuid_struct = {
