@@ -667,7 +667,10 @@ int fchmod_builtin(WORD_LIST *list)
     if (str2mode(argv[1], &mode) == -1)
         return (EX_USAGE);
 
-    int result = fchmod(fd, mode);
+    int result;
+    do {
+        result = fchmod(fd, mode);
+    } while (result == -1 && errno == EINTR);
     if (result == -1) {
         warn("fchmod failed");
         return 1;
@@ -705,7 +708,10 @@ int fchown_builtin(WORD_LIST *list)
     if (parse_ids(argv[1], &uid, &gid) == -1)
         return 1;
 
-    int result = fchown(fd, uid, gid);
+    int result;
+    do {
+        result = fchown(fd, uid, gid);
+    } while (result == -1 && errno == EINTR);
     if (result == -1) {
         warn("fchmod failed");
         return 1;
