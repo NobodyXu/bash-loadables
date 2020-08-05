@@ -106,8 +106,11 @@ int str2pint(const char *str, int *integer)
 int str2fd(const char *str, int *fd)
 {
     int result = str2pint(str, fd);
-    if (result < 0) {
+    if (result == -1) {
         builtin_usage();
+        return -1;
+    } else if (result == -2) {
+        fputs("Input fd too large!", stderr);
         return -1;
     }
     return 0;
