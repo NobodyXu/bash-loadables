@@ -494,17 +494,3 @@ int fd_ops_builtin(WORD_LIST *list)
 
     return (EXECUTION_SUCCESS);
 }
-
-/**
- * If this function returns 0, the load fails.
- */
-PUBLIC int fd_ops_builtin_load (char *name)
-{
-    return (1);
-}
-
-/**
- * Called when `template' is disabled.
- */
-PUBLIC void fd_ops_builtin_unload (char *name)
-{}
