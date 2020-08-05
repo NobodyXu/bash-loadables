@@ -125,8 +125,11 @@ int str2fd(const char *str, int *fd)
 int str2mode(const char *str, mode_t *mode)
 {
     intmax_t result;
-    if (legal_number(str, &result) == 0 || result < 0 || result > (S_ISUID | S_IRWXU | S_IRWXG | S_IRWXO)) {
+    if (legal_number(str, &result) == 0) {
         builtin_usage();
+        return -1;
+    } else if (result < 0 || result > (S_ISUID | S_IRWXU | S_IRWXG | S_IRWXO)) {
+        fputs("Input mode too large!", stderr);
         return -1;
     }
  
