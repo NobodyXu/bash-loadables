@@ -16,7 +16,7 @@
 
 CC = clang
 
-CFLAGS = -std=c11 -O3 -s -fvisibility=hidden -Wno-parentheses -Wno-format-security
+CFLAGS = -std=c11 -Oz -s -fvisibility=hidden -Wno-parentheses -Wno-format-security
 LOCAL_CFLAGS = 
 DEFS = -DHAVE_CONFIG_H
 LOCAL_DEFS = -DSHELL
@@ -43,7 +43,7 @@ loadables.h.gch: loadables.h
 	$(MAKE) -C bash/
 	$(CC) $(CCFLAGS) $(INC) $<
 
-clean:
+elean:
 	rm -f $(OUTS) *.h.gch
 	$(MAKE) -C bash/ clean
 
