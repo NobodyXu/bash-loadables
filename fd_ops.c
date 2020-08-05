@@ -34,15 +34,17 @@
  * @param str must not be null
  * @param integer must be a valid pointer.
  *                If str2int failed, its value is unchanged.
- * @return 0 on success, -1 if not enough/too many arguments.
+ * @return 0 on success, -1 if not integer, -2 if out of range.
+ *
+ * NOTE that this function does not call builtin_usage on error.
  */
 int str2int(const char *str, int *integer)
 {
     intmax_t result;
-    if (legal_number(str, &result) == 0 || result > INT_MAX || result < INT_MIN) {
-        builtin_usage();
+    if (legal_number(str, &result) == 0) {
         return -1;
-    }
+    } else if (result > INT_MAX || result < INT_MIN)
+        return -2;
  
     *integer = result;
     return 0;
