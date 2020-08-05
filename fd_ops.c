@@ -21,6 +21,8 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
+#include <string.h>
 
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -28,6 +30,11 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+
+#include <pwd.h>
+#include <grp.h>
+
+#include <err.h>
 #include <errno.h>
 
 /**
@@ -174,6 +181,123 @@ int check_no_options(WORD_LIST *list)
     if (no_options(list)) // If options present
         return -1;
     list = loptend;
+    return 0;
+}
+
+/**
+ * @return NULL on error, otherwise ret value of get_f(name).
+ * helper function for retrieving struct passwd* or struct group*.
+ */
+void* get_pg_impl(void* (*get_f)(const char*), const char *name, 
+                  const char *function_name, const char *type /* meta info for printing on error */)
+{
+    void *ret;
+    do {
+        errno = 0;
+        ret = get_f(name);
+    } while (ret == NULL && errno == EINTR);
+
+    if (ret == NULL) {
+        if (errno != 0)
+            warn("%s(%s) failed!", function_name, name);
+        else
+            fprintf(stderr, "%s %s not found!\n", type, name);
+    }
+
+    return ret;
+}
+int parse_id_impl(unsigned *id, const char *name, void* (*get_f)(const char*), size_t offset, 
+                  /* meta info for printing on error */
+                  const char *function_name, const char *name_type, const char *id_type)
+{
+    int result = str2uint(name, id);
+    if (result == -1) {
+        char *ret = get_pg_impl(get_f, name, function_name, name_type);
+
+        if (ret)
+            *id = *((unsigned*) (ret + offset));
+        else
+            return -1;
+    } else if (result == -2) {
+        fprintf(stderr, "Input %s is too large!", id_type);
+        return -1;
+    }
+
+    return 0;
+}
+#define parse_id(id, name, get_f, offset) \
+    parse_id_impl(id, name, (void* (*)(const char*)) get_f, offset, # get_f, # name, # id)
+
+/**
+ * @param uid != NULL, only modified on success.
+ * @param user != NULL
+ * @return -1 on error, 0 otherwise.
+ */
+int parse_user(uid_t *uid, const char *user)
+{
+    _Static_assert(sizeof(uid_t) == sizeof(unsigned), "not supported!");
+    _Static_assert((uid_t) -1 > 0, "not supported!");
+
+    return parse_id(uid, user, getpwnam, offsetof(struct passwd, pw_uid));
+}
+
+/**
+ * @param gid != NULL, only modified on success
+ * @param group != NULL
+ * @return -1 on error, 0 on success.
+ */
+int parse_group(gid_t *gid, const char *group)
+{
+    _Static_assert(sizeof(gid_t) == sizeof(unsigned), "not supported!");
+    _Static_assert((gid_t) -1 > 0, "not supported!");
+
+    return parse_id(gid, group, getgrnam, offsetof(struct group, gr_gid));
+}
+
+/**
+ * @param arg != NULL, in the form of ':', 'uid' or 'uid:' or 'uid:gid' or ':gid'.
+ * @param uid, gid will be filled with uid, gid specified in arg.
+ *                 If uid/gid is ignored, it will be set to -1 (unchanged).
+ *
+ * @return -1 on err, 0 if succeeds.
+ *
+ * parse uid and gid
+ */
+int parse_ids(const char *arg, uid_t *uid, gid_t *gid)
+{
+    char *delimiter = strchr(arg, ':');
+
+    if (delimiter == NULL) {
+        if (parse_user(uid, arg) == -1)
+            return -1;
+        *gid = -1;
+        return 0;
+    } else if (delimiter == arg) {
+        *uid = -1;
+    } else {
+        size_t size = delimiter - arg;
+
+        if (size > sysconf(_SC_LOGIN_NAME_MAX)) {
+            fputs("username too long!", stderr);
+            return -1;
+        }
+
+        char name[size + 1];
+        strncpy(name, arg, size);
+        name[size] = '\0';
+
+        if (parse_user(uid, name) == -1)
+            return -1;
+    }
+
+    char *group = delimiter + 1;
+
+    if (*group != '\0') {
+        if (parse_group(gid, group) == -1)
+            return -1;
+    } else
+        *gid = -1;
+
     return 0;
 }
 
@@ -557,20 +681,62 @@ PUBLIC struct builtin fchmod_struct = {
     0                           /* reserved for internal use */
 };
 
-int fd_ops_builtin(WORD_LIST *list)
+int fchown_builtin(WORD_LIST *list)
 {
-    reset_internal_getopt();
+    if (check_no_options(list) == -1)
+        return (EX_USAGE);
 
-    for (int opt; (opt = internal_getopt(list, "")) != -1; ) {
-        switch (opt) {
-            CASE_HELPOPT;
+    const char *argv[2];
+    if (to_argv(list, 2, argv) == -1)
+        return (EX_USAGE);
 
-        default:
-            builtin_usage();
-            return (EX_USAGE);
-        }
+    int fd;
+    if (str2fd(argv[0], &fd) == -1)
+        return (EX_USAGE);
+
+    uid_t uid;
+    gid_t gid;
+    if (parse_ids(argv[1], &uid, &gid) == -1)
+        return 1;
+
+    int result = fchown(fd, uid, gid);
+    if (result == -1) {
+        perror("fchmod failed");
+        return 1;
     }
-    list = loptend;
 
     return (EXECUTION_SUCCESS);
 }
+PUBLIC struct builtin fchown_struct = {
+    "fchown",                    /* builtin name */
+    fchown_builtin,              /* function implementing the builtin */
+    BUILTIN_ENABLED,             /* initial flags for builtin */
+    (char*[]){
+        "fchown changes group and owner regarding the fd",
+        "",
+        "The second arg can take the form of ':', 'uid/username', 'uid/username:', ",
+        "'uid/username:gid/groupname', ':gid/groupname'.",
+        "In other words, uid/username and gid/groupname can be omitted if you don't want to",
+        "change them.",
+        "",
+        "NOTE that uid/gid can be arbitary number permitted by the system.",
+        "",
+        "Only a privileged process (Linux: one with the CAP_CHOWN capability) may change the owner of a file. ",
+        "The owner of a file may change the group of the file to any group of which that owner is a member. ", 
+        "A privileged process (Linux: with CAP_CHOWN) may change the group arbitrarily.",
+        "",
+        "When the owner or group of an executable file is changed by an unprivileged user, ", 
+        "the S_ISUID and S_ISGID mode bits are cleared. ",
+        "POSIX does not specify whether this also should happen when root does the chown(); ",
+        "the Linux behavior depends on the kernel version, and since Linux 2.2.13, ", 
+        "root is treated like other users. ",
+        "In case of a non-group-executable file the S_ISGID bit indicates mandatory locking, ",
+        "and is not cleared by a chown().", 
+        "",
+        "When the owner or group of an executable file is changed (by any user), ",
+        "all capability sets for the file are cleared.",
+        (char*) NULL
+    },                          /* array of long documentation strings. */
+    "fchown <int> fd uid/username:gid/groupname",      /* usage synopsis; becomes short_doc */
+    0                           /* reserved for internal use */
+};
