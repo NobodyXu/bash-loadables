@@ -42,6 +42,11 @@
 #include <err.h>
 #include <errno.h>
 
+/**
+ * on modern linux kernel, SCM_MAX_FD is equal to 253
+ */
+#define SCM_MAX_FD 253
+
 static uintmax_t min_unsigned(uintmax_t x, uintmax_t y)
 {
     return x > y ? y : x;
@@ -1009,5 +1014,93 @@ PUBLIC struct builtin fdputs_struct = {
         (char*) NULL
     },                            /* array of long documentation strings. */
     "fdputs <int> fd msg",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
+int sendfds_builtin(WORD_LIST *list)
+{
+    if (check_no_options(list) == -1)
+        return (EX_USAGE);
+
+    int argc = list_length(list);
+
+    int fd_cnt = argc - 2;
+    if (argc <= 1) {
+        builtin_usage();
+        return (EX_USAGE);
+    } else if (fd_cnt > SCM_MAX_FD /* at most SCM_MAX_FD fds can be sent */) {
+        fputs("Too many arguments!", stderr);
+        return (EX_USAGE);
+    }
+
+    int socketfd;
+    if (str2fd(list->word->word, &socketfd) == -1)
+        return (EX_USAGE);
+    list = list->next;
+
+    char buffer[CMSG_SPACE(sizeof(int) * fd_cnt)];
+    memset(buffer, 0, sizeof(buffer));
+
+    struct iovec iov = {
+        .iov_base = "\0",
+        .iov_len = 1
+    };
+    struct msghdr msg = {
+        .msg_name = NULL,
+        .msg_namelen = 0,
+
+        .msg_iov = &iov,
+        .msg_iovlen = 1,
+
+        .msg_control = buffer,
+        .msg_controllen = sizeof(buffer)
+    };
+
+    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+
+    cmsg->cmsg_level = SOL_SOCKET;
+    cmsg->cmsg_type = SCM_RIGHTS;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(int) * fd_cnt);
+
+    void *cmsg_data = CMSG_DATA(cmsg);
+    int fds[8];
+    int i = 0, j = 0;
+    for (; i != fd_cnt; ++i, list = list->next) {
+        if (str2fd(list->word->word, fds + j) == -1)
+            return (EX_USAGE);
+
+        if (++j == 8) {
+            memcpy(cmsg_data + (i - 8) * sizeof(int), fds, 8 * sizeof(int));
+            j = 0;
+        }
+    }
+    memcpy(cmsg_data + (i - j) * sizeof(int), fds, j * sizeof(int));
+
+    int flags = 0;
+
+    ssize_t result;
+    do {
+        result = sendmsg(socketfd, &msg, flags);
+    } while (result == -1 && errno == EINTR);
+
+    if (result == -1) {
+        warn("sendmsg failed");
+        return 1;
+    } else if (result == 0) {
+        warnx("sendmsg returns 0!");
+        return 2;
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin sendfds_struct = {
+    "sendfds",       /* builtin name */
+    sendfds_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "sendfds send file descripter over unix socket.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "sendfds <int> fd_of_unix_socket fd1 [fds...]",      /* usage synopsis; becomes short_doc */
     0                             /* reserved for internal use */
 };
