@@ -42,6 +42,11 @@
 #include <err.h>
 #include <errno.h>
 
+static uintmax_t min_unsigned(uintmax_t x, uintmax_t y)
+{
+    return x > y ? y : x;
+}
+
 /**
  * @param str must not be null
  * @param integer must be a valid pointer.
@@ -960,5 +965,48 @@ PUBLIC struct builtin create_unixsocketpair_struct = {
         (char*) NULL
     },                            /* array of long documentation strings. */
     "create_unixsocketpair stream/dgram var1 var2",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
+int fdputs_builtin(WORD_LIST *list)
+{
+    if (check_no_options(list) == -1)
+        return (EX_USAGE);
+
+    const char *argv[2];
+    if (to_argv(list, 2, argv) == -1)
+        return (EX_USAGE);
+
+    int fd;
+    if (str2fd(argv[0], &fd) == -1)
+        return (EX_USAGE);
+
+    size_t size = strlen(argv[1]);
+
+    ssize_t result;
+    for (size_t i = 0; i != size; ) {
+        result = write(fd, argv[1] + i, min_unsigned(size - i, SSIZE_MAX));
+        if (result == -1) {
+            if (errno == EINTR)
+                continue;
+
+            warn("write failed");
+            return 1;
+        }
+ 
+        i += result;
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin fdputs_struct = {
+    "fdputs",       /* builtin name */
+    fdputs_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "fdputs write msg to fd without newline.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "fdputs <int> fd msg",      /* usage synopsis; becomes short_doc */
     0                             /* reserved for internal use */
 };
