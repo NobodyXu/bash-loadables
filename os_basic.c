@@ -169,28 +169,29 @@ int str2mode(const char *str, mode_t *mode)
 }
 
 /**
+ * @return number of args read in.
+ */
+int readin_args(WORD_LIST **l, int argc, const char *argv[])
+{
+    int i = 0;
+    for (; i != argc && (*l) != NULL; ++i) {
+        argv[i] = (*l)->word->word;
+        (*l) = (*l)->next;
+    }
+    return i;
+}
+
+/**
  * @return number of optional arg read in on success, -1 if not enough/too many arguments.
  */
 int to_argv_opt(WORD_LIST *l, int argc, int opt_argc, const char *argv[])
 {
-    for (int i = 0; i != argc; ++i) {
-        if (l == NULL) {
-            builtin_usage();
-            return -1;
-        }
-
-        argv[i] = l->word->word;
-        l = l->next;
+    if (readin_args(&l, argc, argv) < argc) {
+        builtin_usage();
+        return -1;
     }
 
-    int i = 0;
-    for (; i != opt_argc; ++i) {
-        if (l == NULL)
-            return i;
-
-        argv[argc + i] = l->word->word;
-        l = l->next;
-    }
+    int i = readin_args(&l, opt_argc, argv + argc);
     if (l != NULL) {
         builtin_usage();
         return -1;
