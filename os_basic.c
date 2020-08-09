@@ -36,6 +36,9 @@
 #include <pwd.h>
 #include <grp.h>
 
+#include <sys/socket.h>
+#include <sys/un.h>
+
 #include <err.h>
 #include <errno.h>
 
@@ -911,4 +914,51 @@ PUBLIC struct builtin setresgid_struct = {
     },                          /* array of long documentation strings. */
     "getresgid var1 var2 var3",      /* usage synopsis; becomes short_doc */
     0                           /* reserved for internal use */
+};
+
+int create_unixsocketpair_builtin(WORD_LIST *list)
+{
+    if (check_no_options(list) == -1)
+        return (EX_USAGE);
+
+    const char *argv[3];
+    if (to_argv(list, 3, argv) == -1)
+        return (EX_USAGE);
+
+    int type;
+    if (strcasecmp(argv[0], "stream") == 0)
+        type = SOCK_STREAM;
+    else if (strcasecmp(argv[0], "dgram") == 0)
+        type = SOCK_DGRAM;
+    else {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    int socketfds[2];
+    if (socketpair(AF_UNIX, type, 0, socketfds) == -1)
+        return 1;
+
+    for (int i = 0; i != 2; ++i)
+        bind_var_to_int((char*) argv[i + 1], socketfds[i]);
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin create_unixsocketpair_struct = {
+    "create_unixsocketpair",       /* builtin name */
+    create_unixsocketpair_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "create_unixsocketpair creates a connected unix socket pair.",
+        "",
+        "The 1st argument is case insensitive.",
+        "If \"dgram\" is passed, then the socket will preserve message boundaries",
+        "If not, then it is not guaranteed to preserve message boundaries.",
+        "",
+        "The fds of two ends will be stored in var1 and var2. They both can be used to receive and send",
+        "over the socket.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "create_unixsocketpair stream/dgram var1 var2",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
 };
