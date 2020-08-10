@@ -1195,10 +1195,10 @@ int recvfds_builtin(WORD_LIST *list)
     } while (result == -1 && errno == EINTR);
 
     if (result == -1) {
-        warn("sendmsg failed");
+        warn("recvmsg failed");
         return 1;
     } else if (result == 0) {
-        warnx("sendmsg returns 0!");
+        warnx("recvmsg returns 0!");
         return 2;
     }
 
