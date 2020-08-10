@@ -1080,19 +1080,14 @@ int sendfds_builtin(WORD_LIST *list)
     cmsg->cmsg_type = SCM_RIGHTS;
     cmsg->cmsg_len = CMSG_LEN(sizeof(int) * fd_cnt);
 
-    void *cmsg_data = CMSG_DATA(cmsg);
-    int fds[8];
-    int i = 0, j = 0;
-    for (; i != fd_cnt; ++i, list = list->next) {
-        if (str2fd(list->word->word, fds + j) == -1)
+    int *cmsg_data = (int*) CMSG_DATA(cmsg);
+    for (int i = 0; i != fd_cnt; ++i, list = list->next) {
+        int fd;
+        if (str2fd(list->word->word, &fd) == -1)
             return (EX_USAGE);
 
-        if (++j == 8) {
-            memcpy(cmsg_data + (i - 8) * sizeof(int), fds, 8 * sizeof(int));
-            j = 0;
-        }
+        cmsg_data[i] = fd;
     }
-    memcpy(cmsg_data + (i - j) * sizeof(int), fds, j * sizeof(int));
 
     ssize_t result;
     do {
