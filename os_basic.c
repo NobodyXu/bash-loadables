@@ -18,6 +18,8 @@
 #include "bashansi.h"
 #include "loadables.h"
 
+#include "bash/builtins/builtext.h"
+
 #include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -25,6 +27,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <dlfcn.h>
 
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -1229,5 +1233,64 @@ PUBLIC struct builtin recvfds_struct = {
         (char*) NULL
     },                            /* array of long documentation strings. */
     "recvfds [-C] <int> fd_of_unix_socket nfd var",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
+int enable_all_builtin(WORD_LIST *_)
+{
+    Dl_info info;
+    if (dladdr(enable_all_builtin, &info) == 0) {
+        warnx("Failed to get path to the shared object itself by dladdr");
+        return 1;
+    }
+
+    // The path to file has a upper limit
+    char pathname[strlen(info.dli_fname) + 1];
+    strncpy(pathname, info.dli_fname, sizeof(pathname));
+
+    WORD_DESC words[] = {
+        { .word = "-f", .flags = 0 },
+        { .word = (char*) info.dli_fname /* Pretty sure that it's not going to be modified in enable_builtin */, .flags = 0 },
+
+        { .word = "memfd_create", .flags = 0 },
+        { .word = "create_tmpfile", .flags = 0 },
+
+        { .word = "lseek", .flags = 0 },
+
+        { .word = "fexecve", .flags = 0 },
+        { .word = "flink", .flags = 0 },
+        { .word = "fchmod", .flags = 0 },
+        { .word = "fchown", .flags = 0 },
+
+        { .word = "getresuid", .flags = 0 },
+        { .word = "getresgid", .flags = 0 },
+        { .word = "setresuid", .flags = 0 },
+        { .word = "setresgid", .flags = 0 },
+
+        { .word = "create_unixsocketpair", .flags = 0 },
+        { .word = "fdputs", .flags = 0 },
+        { .word = "sendfds", .flags = 0 },
+        { .word = "recvfds", .flags = 0 },
+    };
+
+    const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
+
+    WORD_LIST list[builtin_num];
+    for (size_t i = 0; i != builtin_num; ++i) {
+        list[i].word = &words[i];
+        list[i].next = i + 1 != builtin_num ? &list[i + 1] : NULL;
+    }
+
+    return enable_builtin(list);
+}
+PUBLIC struct builtin enable_all_struct = {
+    "enable_all",       /* builtin name */
+    enable_all_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "enable_all enables all builtin defined in this file.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "enable_all",                 /* usage synopsis; becomes short_doc */
     0                             /* reserved for internal use */
 };
