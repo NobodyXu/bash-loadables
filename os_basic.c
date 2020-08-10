@@ -358,7 +358,7 @@ int parse_ids(const char *arg, uid_t *uid, gid_t *gid)
 #define STR_IMPL_(x) #x      //stringify argument
 #define STR(x) STR_IMPL_(x)  //indirection to expand argument macros
 
-int memfd_create_builtin(WORD_LIST *list)
+int create_memfd_builtin(WORD_LIST *list)
 {
     reset_internal_getopt();
 
@@ -395,9 +395,9 @@ int memfd_create_builtin(WORD_LIST *list)
 
     return (EXECUTION_SUCCESS);
 }
-PUBLIC struct builtin memfd_create_struct = {
-    "memfd_create",             /* builtin name */
-    memfd_create_builtin,       /* function implementing the builtin */
+PUBLIC struct builtin create_memfd_struct = {
+    "create_memfd",             /* builtin name */
+    create_memfd_builtin,       /* function implementing the builtin */
     BUILTIN_ENABLED,            /* initial flags for builtin */
     (char*[]){
         "Create an anonymous file in RAM and store its fd in variable $VAR.",
@@ -410,7 +410,7 @@ PUBLIC struct builtin memfd_create_struct = {
         "    On any other error, return 100", 
         (char*) NULL
     },                          /* array of long documentation strings. */
-    "memfd_create [-C] VAR",    /* usage synopsis; becomes short_doc */
+    "create_memfd [-C] VAR",    /* usage synopsis; becomes short_doc */
     0                           /* reserved for internal use */
 };
 
@@ -1252,7 +1252,7 @@ int enable_all_builtin(WORD_LIST *_)
         { .word = "-f", .flags = 0 },
         { .word = (char*) info.dli_fname /* Pretty sure that it's not going to be modified in enable_builtin */, .flags = 0 },
 
-        { .word = "memfd_create", .flags = 0 },
+        { .word = "create_memfd", .flags = 0 },
         { .word = "create_tmpfile", .flags = 0 },
 
         { .word = "lseek", .flags = 0 },
