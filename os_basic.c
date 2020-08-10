@@ -47,6 +47,9 @@
  */
 #define SCM_MAX_FD 253
 
+#define STR_IMPL_(x) #x      //stringify argument
+#define STR(x) STR_IMPL_(x)  //indirection to expand argument macros
+
 static uintmax_t min_unsigned(uintmax_t x, uintmax_t y)
 {
     return x > y ? y : x;
@@ -1119,5 +1122,117 @@ PUBLIC struct builtin sendfds_struct = {
         (char*) NULL
     },                            /* array of long documentation strings. */
     "sendfds [-N] <int> fd_of_unix_socket fd1 [fds...]",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
+int recvfds_builtin(WORD_LIST *list)
+{
+    int flags = 0;
+
+    reset_internal_getopt();
+    for (int opt; (opt = internal_getopt(list, "C")) != -1; ) {
+        switch (opt) {
+        case 'C':
+            flags |= MSG_CMSG_CLOEXEC;
+            break;
+
+        CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
+    }
+    list = loptend;
+
+    const char* argv[3];
+    if (to_argv(list, 3, argv) == -1)
+        return (EX_USAGE);
+
+    int socketfd;
+    if (str2fd(argv[0], &socketfd) == -1)
+        return (EX_USAGE);
+
+    unsigned fd_cnt;
+    switch (str2uint32(argv[1], &fd_cnt)) {
+        case -1:
+            builtin_usage();
+            return (EX_USAGE);
+
+        case -2:
+            fputs("nfd is too large!", stderr);
+            return (EX_USAGE);
+
+        case 0:
+            break;
+    }
+
+    char buffer[CMSG_SPACE(sizeof(int) * fd_cnt)];
+    memset(buffer, 0, sizeof(buffer));
+
+    char recvbuf[1];
+    struct iovec iov = {
+        .iov_base = recvbuf,
+        .iov_len = 1
+    };
+    struct msghdr msg = {
+        .msg_name = NULL,
+        .msg_namelen = 0,
+
+        .msg_iov = &iov,
+        .msg_iovlen = 1,
+
+        .msg_control = buffer,
+        .msg_controllen = sizeof(buffer)
+    };
+
+    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+
+    cmsg->cmsg_level = SOL_SOCKET;
+    cmsg->cmsg_type = SCM_RIGHTS;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(int) * fd_cnt);
+
+    int *cmsg_data = (int*) CMSG_DATA(cmsg);
+    memset(cmsg_data, -1, sizeof(int) * fd_cnt);
+
+    ssize_t result;
+    do {
+        result = recvmsg(socketfd, &msg, flags);
+    } while (result == -1 && errno == EINTR);
+
+    if (result == -1) {
+        warn("sendmsg failed");
+        return 1;
+    } else if (result == 0) {
+        warnx("sendmsg returns 0!");
+        return 2;
+    }
+
+    ARRAY *array = array_create();
+
+    for (size_t i = 0; cmsg_data[i] != -1; ++i) {
+        char buffer[sizeof(STR(INT_MAX))];
+        snprintf(buffer, sizeof(buffer), "%d", cmsg_data[i]);
+
+        array_push(array, buffer);
+    }
+
+    SHELL_VAR *var = make_local_variable(argv[2], 0);
+    VSETATTR(var, att_array);
+    var_setarray(var, array);
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin recvfds_struct = {
+    "recvfds",       /* builtin name */
+    recvfds_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "recvfds receive nfd of fd sent by sendfds into var in the form of array.",
+        "",
+        "If '-C' is specified, then the received fds will be marked close-on-exec.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "recvfds [-C] <int> fd_of_unix_socket nfd var",      /* usage synopsis; becomes short_doc */
     0                             /* reserved for internal use */
 };
