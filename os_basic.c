@@ -1202,7 +1202,8 @@ int recvfds_builtin(WORD_LIST *list)
         return 2;
     }
 
-    ARRAY *array = array_create();
+    SHELL_VAR *var = make_new_array_variable((char*) argv[2]);
+    ARRAY *array = array_cell(var);
 
     for (size_t i = 0; cmsg_data[i] != -1; ++i) {
         char buffer[sizeof(STR(INT_MAX))];
@@ -1210,10 +1211,6 @@ int recvfds_builtin(WORD_LIST *list)
 
         array_push(array, buffer);
     }
-
-    SHELL_VAR *var = make_local_variable(argv[2], 0);
-    VSETATTR(var, att_array);
-    var_setarray(var, array);
 
     return (EXECUTION_SUCCESS);
 }
