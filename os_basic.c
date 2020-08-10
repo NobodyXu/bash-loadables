@@ -1019,8 +1019,23 @@ PUBLIC struct builtin fdputs_struct = {
 
 int sendfds_builtin(WORD_LIST *list)
 {
-    if (check_no_options(list) == -1)
-        return (EX_USAGE);
+    int flags = 0;
+
+    reset_internal_getopt();
+    for (int opt; (opt = internal_getopt(list, "N")) != -1; ) {
+        switch (opt) {
+        case 'N':
+            flags |= MSG_NOSIGNAL;
+            break;
+
+        CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
+    }
+    list = loptend;
 
     int argc = list_length(list);
 
@@ -1076,8 +1091,6 @@ int sendfds_builtin(WORD_LIST *list)
     }
     memcpy(cmsg_data + (i - j) * sizeof(int), fds, j * sizeof(int));
 
-    int flags = 0;
-
     ssize_t result;
     do {
         result = sendmsg(socketfd, &msg, flags);
@@ -1099,8 +1112,12 @@ PUBLIC struct builtin sendfds_struct = {
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
         "sendfds send file descripter over unix socket.",
+        "The other end must use recvfds to receive the fds.",
+        "",
+        "If '-N' is specified, then SIGPIPE won't be generated if the peer of a stream-oriented unix socket",
+        "has closed the connection.",
         (char*) NULL
     },                            /* array of long documentation strings. */
-    "sendfds <int> fd_of_unix_socket fd1 [fds...]",      /* usage synopsis; becomes short_doc */
+    "sendfds [-N] <int> fd_of_unix_socket fd1 [fds...]",      /* usage synopsis; becomes short_doc */
     0                             /* reserved for internal use */
 };
