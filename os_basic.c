@@ -1154,12 +1154,13 @@ int recvfds_builtin(WORD_LIST *list)
             builtin_usage();
             return (EX_USAGE);
 
+        case 0:
+            if (fd_cnt <= SCM_MAX_FD)
+                break;
+
         case -2:
             fputs("nfd is too large!", stderr);
             return (EX_USAGE);
-
-        case 0:
-            break;
     }
 
     char buffer[CMSG_SPACE(sizeof(int) * fd_cnt)];
