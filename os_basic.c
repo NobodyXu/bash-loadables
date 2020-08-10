@@ -148,7 +148,7 @@ int str2fd(const char *str, int *fd)
         builtin_usage();
         return -1;
     } else if (result == -2) {
-        fputs("Input fd too large!", stderr);
+        warnx("Input fd too large!", stderr);
         return -1;
     }
     return 0;
@@ -167,7 +167,7 @@ int str2mode(const char *str, mode_t *mode)
         builtin_usage();
         return -1;
     } else if (result < 0 || result > (S_ISUID | S_IRWXU | S_IRWXG | S_IRWXO)) {
-        fputs("Input mode too large!", stderr);
+        warnx("Input mode too large!", stderr);
         return -1;
     }
  
@@ -328,7 +328,7 @@ int parse_ids(const char *arg, uid_t *uid, gid_t *gid)
         size_t size = delimiter - arg;
 
         if (size > sysconf(_SC_LOGIN_NAME_MAX)) {
-            fputs("username too long!", stderr);
+            warnx("username too long!", stderr);
             return -1;
         }
 
@@ -587,7 +587,7 @@ int fexecve_builtin(WORD_LIST *list)
         builtin_usage();
         return (EX_USAGE);
     } else if (argc > sysconf(_SC_ARG_MAX)) {
-        fputs("Too many arguments!", stderr);
+        warnx("Too many arguments!", stderr);
         return (EX_USAGE);
     }
 
@@ -1047,7 +1047,7 @@ int sendfds_builtin(WORD_LIST *list)
         builtin_usage();
         return (EX_USAGE);
     } else if (fd_cnt > SCM_MAX_FD /* at most SCM_MAX_FD fds can be sent */) {
-        fputs("Too many arguments!", stderr);
+        warnx("Too many arguments!", stderr);
         return (EX_USAGE);
     }
 
@@ -1161,7 +1161,7 @@ int recvfds_builtin(WORD_LIST *list)
                 break;
 
         case -2:
-            fputs("nfd is too large!", stderr);
+            warnx("nfd is too large!", stderr);
             return (EX_USAGE);
     }
 
