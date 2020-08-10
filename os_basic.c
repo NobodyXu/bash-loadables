@@ -1208,7 +1208,7 @@ int recvfds_builtin(WORD_LIST *list)
         char buffer[sizeof(STR(INT_MAX))];
         snprintf(buffer, sizeof(buffer), "%d", cmsg_data[i]);
 
-        array_push(array, buffer);
+        array_insert(array, i, buffer);
     }
 
     return (EXECUTION_SUCCESS);
