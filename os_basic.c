@@ -1163,7 +1163,6 @@ int recvfds_builtin(WORD_LIST *list)
     }
 
     char buffer[CMSG_SPACE(sizeof(int) * fd_cnt)];
-    memset(buffer, 0, sizeof(buffer));
 
     char recvbuf[1];
     struct iovec iov = {
