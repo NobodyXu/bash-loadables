@@ -1219,12 +1219,13 @@ PUBLIC struct builtin recvfds_struct = {
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
         "recvfds receive nfd of fd sent by sendfds into var in the form of array.",
-        "If nfd is less than number of fds sent by sendfds, then the rest of them",
+        "If nfd is less than number of fds sent by sendfds or accepting them will cause the process to ",
+        "exceed its RLIMIT_NOFILE resource limit, then the rest of them",
         "will be discarded and closed.",
         "",
         "If '-C' is specified, then the received fds will be marked close-on-exec.",
         "",
-        "NOTE that at most 253 fds is accepted at once.",
+        "NOTE that at most 253 fds can be received at once.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "recvfds [-C] <int> fd_of_unix_socket nfd var",      /* usage synopsis; becomes short_doc */
