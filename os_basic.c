@@ -1114,6 +1114,8 @@ PUBLIC struct builtin sendfds_struct = {
         "",
         "If '-N' is specified, then SIGPIPE won't be generated if the peer of a stream-oriented unix socket",
         "has closed the connection.",
+        "",
+        "NOTE that at most 253 fds is accepted at once.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "sendfds [-N] <int> fd_of_unix_socket fd1 [fds...]",      /* usage synopsis; becomes short_doc */
