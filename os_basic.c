@@ -1024,7 +1024,7 @@ int sendfds_builtin(WORD_LIST *list)
 
     int argc = list_length(list);
 
-    int fd_cnt = argc - 2;
+    int fd_cnt = argc - 1;
     if (argc <= 1) {
         builtin_usage();
         return (EX_USAGE);
