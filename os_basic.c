@@ -1181,15 +1181,6 @@ int recvfds_builtin(WORD_LIST *list)
         .msg_controllen = sizeof(buffer)
     };
 
-    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
-
-    cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = SCM_RIGHTS;
-    cmsg->cmsg_len = CMSG_LEN(sizeof(int) * fd_cnt);
-
-    int *cmsg_data = (int*) CMSG_DATA(cmsg);
-    memset(cmsg_data, -1, sizeof(int) * fd_cnt);
-
     ssize_t result;
     do {
         result = recvmsg(socketfd, &msg, flags);
@@ -1206,7 +1197,12 @@ int recvfds_builtin(WORD_LIST *list)
     SHELL_VAR *var = make_new_array_variable((char*) argv[2]);
     ARRAY *array = array_cell(var);
 
-    for (size_t i = 0; cmsg_data[i] != -1; ++i) {
+    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+
+    int fd_readin = (cmsg->cmsg_len - CMSG_ALIGN(sizeof(struct cmsghdr))) / sizeof(int);
+    int *cmsg_data = (int*) CMSG_DATA(cmsg);
+
+    for (size_t i = 0; i != fd_readin; ++i) {
         char buffer[sizeof(STR(INT_MAX))];
         snprintf(buffer, sizeof(buffer), "%d", cmsg_data[i]);
 
