@@ -1201,10 +1201,10 @@ int recvfds_builtin(WORD_LIST *list)
 
     struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
 
-    int fd_readin = (cmsg->cmsg_len - CMSG_ALIGN(sizeof(struct cmsghdr))) / sizeof(int);
+    int nfd_readin = (cmsg->cmsg_len - CMSG_ALIGN(sizeof(struct cmsghdr))) / sizeof(int);
     int *cmsg_data = (int*) CMSG_DATA(cmsg);
 
-    for (size_t i = 0; i != fd_readin; ++i) {
+    for (size_t i = 0; i != nfd_readin; ++i) {
         char buffer[sizeof(STR(INT_MAX))];
         snprintf(buffer, sizeof(buffer), "%d", cmsg_data[i]);
 
