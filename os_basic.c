@@ -1209,7 +1209,7 @@ int recvfds_builtin(WORD_LIST *list)
 
     if (!(cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)) {
         warnx("Unexpected: received cmsg isn't the type that contains fds");
-        return (EX_USAGE);
+        return (3);
     }
 
     SHELL_VAR *var = make_new_array_variable((char*) argv[2]);
