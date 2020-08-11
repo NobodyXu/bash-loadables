@@ -1201,6 +1201,11 @@ int recvfds_builtin(WORD_LIST *list)
     }
 
     struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+    
+    if (cmsg == NULL) {
+        warnx("No cmsg is received");
+        return (4);
+    }
 
     if (!(cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)) {
         warnx("Unexpected: received cmsg isn't the type that contains fds");
