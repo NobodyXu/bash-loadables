@@ -7,6 +7,8 @@ An extension to bash's builtin, providing more functionalities and potentially b
 ```
 git clone --recurse-submodules https://github.com/NobodyXu/bash-loadables
 cd bash-loadabes/
+
+# Make sure you have clang installed before running make
 make all -j $(nproc)
 ```
 
