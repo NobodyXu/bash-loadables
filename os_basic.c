@@ -1203,7 +1203,7 @@ int recvfds_builtin(WORD_LIST *list)
     struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
 
     if (!(cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)) {
-        warnx("Wrong usage: recvfds should be paired with sendfds");
+        warnx("Unexpected: received cmsg isn't the type that contains fds");
         return (EX_USAGE);
     }
 
