@@ -1240,6 +1240,10 @@ PUBLIC struct builtin recvfds_struct = {
         "If '-C' is specified, then the received fds will be marked close-on-exec.",
         "",
         "NOTE that at most 253 fds can be received at once.",
+        "",
+        "On error:",
+        "    If no cmsg is received, returns 4;",
+        "    If the cmsg received isn't the type that contains fds, returns 3.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "recvfds [-C] <int> fd_of_unix_socket nfd var",      /* usage synopsis; becomes short_doc */
