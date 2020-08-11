@@ -1120,6 +1120,10 @@ PUBLIC struct builtin sendfds_struct = {
         "has closed the connection.",
         "",
         "NOTE that at most 253 fds is accepted at once.",
+        "",
+        "Implemention detail:",
+        "    Since fds is required to be sent with an actual message, sendfds actually sends \"\0\"",
+        "    along with the cmsg.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "sendfds [-N] <int> fd_of_unix_socket fd1 [fds...]",      /* usage synopsis; becomes short_doc */
