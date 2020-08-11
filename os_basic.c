@@ -1200,10 +1200,15 @@ int recvfds_builtin(WORD_LIST *list)
         return 2;
     }
 
+    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+
+    if (!(cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)) {
+        warnx("Wrong usage: recvfds should be paired with sendfds");
+        return (EX_USAGE);
+    }
+
     SHELL_VAR *var = make_new_array_variable((char*) argv[2]);
     ARRAY *array = array_cell(var);
-
-    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
 
     int nfd_readin = (cmsg->cmsg_len - CMSG_ALIGN(sizeof(struct cmsghdr))) / sizeof(int);
     int *cmsg_data = (int*) CMSG_DATA(cmsg);
