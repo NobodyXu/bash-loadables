@@ -1843,9 +1843,56 @@ PUBLIC struct builtin bind_struct = {
     0                             /* reserved for internal use */
 };
 
+int listen_builtin(WORD_LIST *list)
+{
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
 
-// bind
-// listen
+    const char *argv[2];
+    if (to_argv(list, 2, argv) == -1)
+        return (EX_USAGE);
+
+    int socketfd;
+    if (str2fd(argv[0], &socketfd) == -1)
+        return -1;
+
+    int backlog;
+    switch (str2pint(argv[1], &backlog)) {
+        case -1:
+            warnx("listen: argv[2] is not an integer");
+            return (EX_USAGE);
+        case -2:
+            warnx("listen: argv[2] out of range");
+            return (EX_USAGE);
+        case 0:
+            break;
+    }
+
+    if (listen(socketfd, backlog) == -1) {
+        warn("listen: failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin listen_struct = {
+    "listen",       /* builtin name */
+    listen_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "The socketfd is a fd that refers to a socket of type SOCK_STREAM or SOCK_SEQPACKET.",
+        "",
+        "The backlog defines the max length to which the queue of pending connections for socketfd may grow.",
+        "If backlog is greater than the value in /proc/sys/net/core/somaxconn, then it is ",
+        "silently truncated to that value.",
+        "Since Linux 5.4, the default in this file is 4096; in earlier kernels, the default value is 128.",
+        "In kernels before 2.4.25, this limit was a hard coded value, SOMAXCONN, with the value 128.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "listen <int> socketfd <int> backlog",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
 // accept
 // connect
 
@@ -1898,6 +1945,7 @@ int enable_all_builtin(WORD_LIST *_)
 
         { .word = "create_socket", .flags = 0 },
         { .word = "bind", .flags = 0 },
+        { .word = "listen", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
