@@ -1755,7 +1755,7 @@ PUBLIC struct builtin create_socket_struct = {
     0                             /* reserved for internal use */
 };
 
-int bind_builtin(WORD_LIST *list)
+int put_sockaddr(WORD_LIST *list, int (*putter)(int, const struct sockaddr*, socklen_t), const char *fname)
 {
     if (check_no_options(&list) == -1)
         return (EX_USAGE);
@@ -1775,18 +1775,17 @@ int bind_builtin(WORD_LIST *list)
         struct sockaddr_un unix;
     } addr;
 
-    sa_family_t sa_family;
     if (strcasecmp(argv[1], "AF_UNIX") == 0) {
         addrlen = sizeof(struct sockaddr_un);
         addr.unix.sun_family = AF_UNIX;
         strncpy(addr.unix.sun_path, argv[2], sizeof(addr.unix.sun_path));
     } else if (strcasecmp(argv[1], "AF_INET") == 0) {
         addrlen = sizeof(struct sockaddr_in);
-        sa_family = AF_INET;
+        addr.ipv4.sin_family = AF_INET;
 
         const char *port = strchr(argv[2], ':');
         if (port == NULL) {
-            warnx("bind: port not found in argv[3]");
+            warnx("%s: port not found in argv[3]", fname);
             return (EX_USAGE);
         }
 
@@ -1797,7 +1796,8 @@ int bind_builtin(WORD_LIST *list)
 
         switch (inet_pton(AF_INET, ipv4_addr, &addr.ipv4.sin_addr)) {
             case 0:
-                warnx("bind: argv[3] does not have a valid network address in the specified address family");
+                warnx("%s: argv[3] does not have a valid network address in the specified address family", 
+                      fname);
                 return (EXECUTION_FAILURE);
 
             case 1:
@@ -1808,25 +1808,38 @@ int bind_builtin(WORD_LIST *list)
         if (legal_number(port, &integer) == 0)
             return (EX_USAGE);
         if (integer < 0) {
-            warnx("bind: argv[3] contains a negative port number");
+            warnx("%s: argv[3] contains a negative port number", fname);
             return (EXECUTION_FAILURE);
         } else if (integer > 65535) {
-            warnx("bind: argv[3] contains a port number greaeter than 65535");
+            warnx("%s: argv[3] contains a port number greaeter than 65535", fname);
             return (EXECUTION_FAILURE);
         }
 
         addr.ipv4.sin_port = htons(integer);
     } else {
-        warnx("bind: Unknown argv[1]");
+        warnx("%s: Unknown argv[1]", fname);
         return (EX_USAGE);
     }
 
-    if (bind(socketfd, &addr.addr, addrlen) == -1) {
-        warn("bind: failed");
+    int result;
+    do {
+        result = putter(socketfd, &addr.addr, addrlen);
+    } while (result == -1 && errno == EINTR);
+
+    if (result == -1) {
+        if ((errno == EAGAIN && addr.addr.sa_family == AF_UNIX) || (errno == EINPROGRESS))
+            return 10;
+        else if (errno == EALREADY)
+            return 11;
+        warn("%s: failed", fname);
         return (EXECUTION_FAILURE);
     }
 
     return (EXECUTION_SUCCESS);
+}
+int bind_builtin(WORD_LIST *list)
+{
+    return put_sockaddr(list, bind, "bind");
 }
 PUBLIC struct builtin bind_struct = {
     "bind",       /* builtin name */
@@ -1956,7 +1969,28 @@ PUBLIC struct builtin accept_struct = {
     0                             /* reserved for internal use */
 };
 
-// connect
+int connect_builtin(WORD_LIST *list)
+{
+    return put_sockaddr(list, connect, "connect");
+}
+PUBLIC struct builtin connect_struct = {
+    "connect",       /* builtin name */
+    connect_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "Currently, only AF_UNIX and AF_INET is suppported.",
+        "",
+        "If domain == AF_INET, socketaddr must be in format ipv4_addr:port.",
+        "If domain == AF_UNIX, length of socketaddr must be <= 108.",
+        "",
+        "If the operation would block, returns 10.",
+        "NOTE that the connetion is still in progress at background.",
+        "If the previous operation operation still hasn't finished, returns 11.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "bind <int> socketfd domain socketaddr",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
 
 // epoll
 
@@ -2008,6 +2042,7 @@ int enable_all_builtin(WORD_LIST *_)
         { .word = "create_socket", .flags = 0 },
         { .word = "bind", .flags = 0 },
         { .word = "listen", .flags = 0 },
+        { .word = "connect", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
