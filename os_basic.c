@@ -2042,6 +2042,7 @@ int enable_all_builtin(WORD_LIST *_)
         { .word = "create_socket", .flags = 0 },
         { .word = "bind", .flags = 0 },
         { .word = "listen", .flags = 0 },
+        { .word = "accept", .flags = 0 },
         { .word = "connect", .flags = 0 },
     };
 
