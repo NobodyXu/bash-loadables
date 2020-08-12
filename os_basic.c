@@ -69,6 +69,25 @@
         varname = vla
 
 /**
+ * START_VLA2 is almost the same as START_VLA except that it 
+ * initializes the array to 0.
+ */
+#define START_VLA2(type, n, varname)                 \
+    type vla[n * sizeof(type) > VLA_MAXLEN ? 0 : n]; \
+    do {                                             \
+        if (sizeof(vla) != 0) {                      \
+            varname = vla;                           \
+            memset(vla, 0, sizeof(vla));             \
+        } else {                                     \
+            varname = calloc(n, sizeof(type));       \
+            if (varname == NULL) {                   \
+                warnx("calloc %zu failed", n * sizeof(vla)); \
+                return (EXECUTION_FAILURE);          \
+            }                                        \
+        }                                            \
+    } while (0)
+
+/**
  * END_VLA must be put in a single statement.
  */
 #define END_VLA(varname)  \
@@ -1129,6 +1148,38 @@ PUBLIC struct builtin fdecho_struct = {
     0                             /* reserved for internal use */
 };
 
+int sendfds_builtin_impl(int socketfd, int fd_cnt, const struct msghdr *msg, int flags, WORD_LIST *list)
+{
+    struct cmsghdr *cmsg = CMSG_FIRSTHDR(msg);
+
+    cmsg->cmsg_level = SOL_SOCKET;
+    cmsg->cmsg_type = SCM_RIGHTS;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(int) * fd_cnt);
+
+    int *cmsg_data = (int*) CMSG_DATA(cmsg);
+    for (int i = 0; i != fd_cnt; ++i, list = list->next) {
+        int fd;
+        if (str2fd(list->word->word, &fd) == -1)
+            return (EX_USAGE);
+
+        cmsg_data[i] = fd;
+    }
+
+    ssize_t result;
+    do {
+        result = sendmsg(socketfd, msg, flags);
+    } while (result == -1 && errno == EINTR);
+
+    if (result == -1) {
+        warn("sendmsg failed");
+        return (EXECUTION_FAILURE);
+    } else if (result == 0) {
+        warnx("sendmsg returns 0!");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
 int sendfds_builtin(WORD_LIST *list)
 {
     int flags = 0;
@@ -1165,8 +1216,8 @@ int sendfds_builtin(WORD_LIST *list)
         return (EX_USAGE);
     list = list->next;
 
-    char buffer[CMSG_SPACE(sizeof(int) * fd_cnt)];
-    memset(buffer, 0, sizeof(buffer));
+    char *buffer;
+    START_VLA2(char, CMSG_SPACE(sizeof(int) * fd_cnt), buffer);
 
     struct iovec iov = {
         .iov_base = "\0",
@@ -1180,38 +1231,12 @@ int sendfds_builtin(WORD_LIST *list)
         .msg_iovlen = 1,
 
         .msg_control = buffer,
-        .msg_controllen = sizeof(buffer)
+        .msg_controllen = CMSG_SPACE(sizeof(int) * fd_cnt)
     };
+    int ret = sendfds_builtin_impl(socketfd, fd_cnt, &msg, flags, list);
+    END_VLA(buffer);
 
-    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
-
-    cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = SCM_RIGHTS;
-    cmsg->cmsg_len = CMSG_LEN(sizeof(int) * fd_cnt);
-
-    int *cmsg_data = (int*) CMSG_DATA(cmsg);
-    for (int i = 0; i != fd_cnt; ++i, list = list->next) {
-        int fd;
-        if (str2fd(list->word->word, &fd) == -1)
-            return (EX_USAGE);
-
-        cmsg_data[i] = fd;
-    }
-
-    ssize_t result;
-    do {
-        result = sendmsg(socketfd, &msg, flags);
-    } while (result == -1 && errno == EINTR);
-
-    if (result == -1) {
-        warn("sendmsg failed");
-        return 1;
-    } else if (result == 0) {
-        warnx("sendmsg returns 0!");
-        return 2;
-    }
-
-    return (EXECUTION_SUCCESS);
+    return ret;
 }
 PUBLIC struct builtin sendfds_struct = {
     "sendfds",       /* builtin name */
