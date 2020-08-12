@@ -1762,11 +1762,11 @@ int bind_builtin(WORD_LIST *list)
 
     const char *argv[3];
     if (to_argv(list, 3, argv) == -1)
-        return (EX_USAGE);
+        return -1;
 
     int socketfd;
     if (str2fd(argv[0], &socketfd) == -1)
-        return -1;
+        return (EX_USAGE);
 
     socklen_t addrlen;
     union {
@@ -1854,7 +1854,7 @@ int listen_builtin(WORD_LIST *list)
 
     int socketfd;
     if (str2fd(argv[0], &socketfd) == -1)
-        return -1;
+        return (EX_USAGE);
 
     int backlog;
     switch (str2pint(argv[1], &backlog)) {
@@ -1892,6 +1892,74 @@ PUBLIC struct builtin listen_struct = {
     "listen <int> socketfd <int> backlog",      /* usage synopsis; becomes short_doc */
     0                             /* reserved for internal use */
 };
+
+int accept_builtin(WORD_LIST *list)
+{
+    reset_internal_getopt();
+
+    int flags = 0;
+    for (int opt; (opt = internal_getopt(list, "NC")) != -1; ) {
+        switch (opt) {
+        case 'N':
+            flags |= SOCK_NONBLOCK;
+            break;
+
+        case 'C':
+            flags |= SOCK_CLOEXEC;
+            break;
+
+
+        CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
+    }
+    list = loptend;
+
+    int socketfd;
+    if (readin_fd(&list, &socketfd) == -1)
+        return (EX_USAGE);
+
+    int backlog;
+    switch (str2pint(argv[1], &backlog)) {
+        case -1:
+            warnx("listen: argv[2] is not an integer");
+            return (EX_USAGE);
+        case -2:
+            warnx("listen: argv[2] out of range");
+            return (EX_USAGE);
+        case 0:
+            break;
+    }
+
+    if (listen(socketfd, backlog) == -1) {
+        warn("listen: failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin listen_struct = {
+    "listen",       /* builtin name */
+    listen_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "The socketfd is a fd that refers to a socket of type SOCK_STREAM or SOCK_SEQPACKET.",
+        "",
+        "The backlog defines the max length to which the queue of pending connections for socketfd may grow.",
+        "If backlog is greater than the value in /proc/sys/net/core/somaxconn, then it is ",
+        "silently truncated to that value.",
+        "Since Linux 5.4, the default in this file is 4096; in earlier kernels, the default value is 128.",
+        "In kernels before 2.4.25, this limit was a hard coded value, SOMAXCONN, with the value 128.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "listen <int> socketfd <int> backlog",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
+
 
 // accept
 // connect
