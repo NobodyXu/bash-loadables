@@ -280,6 +280,20 @@ int check_no_options(WORD_LIST **list)
     return 0;
 }
 
+int readin_fd(WORD_LIST **list, int *fd)
+{
+    if (*list == NULL) {
+        builtin_usage();
+        return -1;
+    }
+
+    if (str2fd((*list)->word->word, fd) == -1)
+        return -1;
+    *list = (*list)->next;
+
+    return 0;
+}
+
 /**
  * @return NULL on error, otherwise ret value of get_f(name).
  * helper function for retrieving struct passwd* or struct group*.
@@ -623,15 +637,9 @@ int fexecve_builtin(WORD_LIST *list)
     if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
-    if (list == NULL) {
-        builtin_usage();
-        return (EX_USAGE);
-    }
-
     int fd;
-    if (str2fd(list->word->word, &fd) == -1)
+    if (readin_fd(&list, &fd) == -1)
         return (EX_USAGE);
-    list = list->next;
 
     if (list == NULL) {
         builtin_usage();
@@ -1108,15 +1116,9 @@ int fdecho_builtin(WORD_LIST *list)
     if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
-    if (list == NULL) {
-        builtin_usage();
-        return (EX_USAGE);
-    }
-
     int fd;
-    if (str2fd(list->word->word, &fd) == -1)
+    if (readin_fd(&list, &fd) == -1)
         return (EX_USAGE);
-    list = list->next;
 
     if (list == NULL)
         return (EXECUTION_SUCCESS);
@@ -1204,21 +1206,15 @@ int sendfds_builtin(WORD_LIST *list)
     }
     list = loptend;
 
-    int argc = list_length(list);
-
-    int fd_cnt = argc - 1;
-    if (argc <= 1) {
-        builtin_usage();
+    int socketfd;
+    if (readin_fd(&list, &socketfd) == -1)
         return (EX_USAGE);
-    } else if (fd_cnt > SCM_MAX_FD /* at most SCM_MAX_FD fds can be sent */) {
+
+    int fd_cnt = list_length(list);
+    if (fd_cnt > SCM_MAX_FD /* at most SCM_MAX_FD fds can be sent */) {
         warnx("Too many arguments!");
         return (EX_USAGE);
     }
-
-    int socketfd;
-    if (str2fd(list->word->word, &socketfd) == -1)
-        return (EX_USAGE);
-    list = list->next;
 
     char *buffer;
     START_VLA2(char, CMSG_SPACE(sizeof(int) * fd_cnt), buffer);
