@@ -37,6 +37,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <time.h>
 
 #include <pwd.h>
 #include <grp.h>
@@ -1532,6 +1533,87 @@ PUBLIC struct builtin pause_struct = {
     0                             /* reserved for internal use */
 };
 
+int sleep_builtin(WORD_LIST *list)
+{
+    reset_internal_getopt();
+
+    int restart_on_signal = 0;
+    for (int opt; (opt = internal_getopt(list, "R")) != -1; ) {
+        switch (opt) {
+        case 'R':
+            restart_on_signal = 1;
+            break;
+
+        CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
+    }
+    list = loptend;
+
+    struct timespec rem;
+    {
+        const char *argv[2];
+        
+        int opt_argc = to_argv_opt(list, 1, 1, argv);
+        if (opt_argc == -1)
+            return (EX_USAGE);
+
+        intmax_t integer;
+        if (legal_number(argv[0], &integer) == 0)
+            return (EX_USAGE);
+        rem.tv_sec = integer;
+        if (integer > rem.tv_sec) {
+            warnx("sleep: argv[1] too large!");
+            return (EX_USAGE);
+        } else if (integer < 0) {
+            warnx("sleep: argv[1] is negative!");
+            return (EX_USAGE);
+        }
+
+        if (opt_argc == 1) {
+            if (legal_number(argv[1], &integer) == 0)
+                return (EX_USAGE);
+            if (integer > 999999999) {
+                warnx("sleep: argv[2] too large!");
+                return (EX_USAGE);
+            } else if (integer < 0) {
+                warnx("sleep: argv[2] negative!");
+                return (EX_USAGE);
+            }
+            rem.tv_nsec = integer;
+        } else
+            rem.tv_nsec = 0;
+    }
+
+    struct timespec req;
+    int result;
+    do {
+        req = rem;
+        result = nanosleep(&req, &rem);
+    } while (result == -1 && errno == EINTR && restart_on_signal);
+
+    if (result == -1 && errno != EINTR) {
+        warn("nanosleep failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin sleep_struct = {
+    "sleep",       /* builtin name */
+    sleep_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "If -R is specified, then sleep will restart afer a signal is delivered.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "sleep [-R] seconds nanoseconds",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
 int has_supplementary_group_member_builtin(WORD_LIST *list)
 {
     if (check_no_options(&list) == -1)
@@ -1564,8 +1646,6 @@ PUBLIC struct builtin has_supplementary_group_member_struct = {
     0                             /* reserved for internal use */
 };
 
-
-
 // socket
 // bind
 // listen
@@ -1573,6 +1653,8 @@ PUBLIC struct builtin has_supplementary_group_member_struct = {
 // connect
 
 // epoll
+
+// timer_create
 
 int enable_all_builtin(WORD_LIST *_)
 {
@@ -1615,6 +1697,7 @@ int enable_all_builtin(WORD_LIST *_)
         { .word = "recvfds", .flags = 0 },
 
         { .word = "pause", .flags = 0 },
+        { .word = "sleep", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
