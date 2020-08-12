@@ -1721,7 +1721,7 @@ int create_socket_builtin(WORD_LIST *list)
             warnx("create_socket: argv[3] is not an integer");
             return (EX_USAGE);
         case -2:
-            warnx("create_socket: argv[3] too large");
+            warnx("create_socket: argv[3] out of range");
             return (EX_USAGE);
 
         case 0:
