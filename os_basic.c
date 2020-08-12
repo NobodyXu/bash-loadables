@@ -66,7 +66,7 @@
     if (sizeof(vla) == 0) {                          \
         varname = malloc(n * sizeof(type));          \
         if (varname == NULL) {                       \
-            warnx("calloc %zu failed", n * sizeof(type)); \
+            warnx("malloc %zu failed", n * sizeof(type)); \
             return (EXECUTION_FAILURE);              \
         }                                            \
     } else                                           \
