@@ -44,6 +44,11 @@
 
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/socket.h>
+
+#include <netinet/in.h>
+#include <netinet/ip.h> /* superset of previous */
+#include <arpa/inet.h>
 
 #include <err.h>
 #include <errno.h>
@@ -1748,7 +1753,106 @@ PUBLIC struct builtin create_socket_struct = {
     0                             /* reserved for internal use */
 };
 
-// socket
+int bind_builtin(WORD_LIST *list)
+{
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    const char *argv[3];
+    if (to_argv(list, 3, argv) == -1)
+        return (EX_USAGE);
+
+    int socketfd;
+    if (str2fd(argv[0], &socketfd) == -1)
+        return -1;
+
+    socklen_t addrlen;
+    union {
+        struct sockaddr addr;
+        struct sockaddr_in ipv4;
+        struct sockaddr_un unix;
+    } addr;
+
+    sa_family_t sa_family;
+    if (strcasecmp(argv[1], "AF_UNIX") == 0) {
+        addrlen = sizeof(struct sockaddr_un);
+        addr.unix.sun_family = AF_UNIX;
+        strncpy(addr.unix.sun_path, argv[2], sizeof(addr.unix.sun_path));
+    } else if (strcasecmp(argv[1], "AF_INET") == 0) {
+        addrlen = sizeof(struct sockaddr_in);
+        sa_family = AF_INET;
+
+        const char *port = strchr(argv[2], ':');
+        if (port == NULL) {
+            warnx("bind: port not found in argv[3]");
+            return (EX_USAGE);
+        }
+
+        char ipv4_addr[INET_ADDRSTRLEN];
+        size_t ipv4_len = port - argv[2];
+        memcpy(ipv4_addr, argv[2], ipv4_len);
+        ipv4_addr[ipv4_len] = '\0';
+
+        switch (inet_pton(AF_INET, ipv4_addr, &addr.ipv4.sin_addr)) {
+            case 0:
+                warnx("bind: argv[3] does not have a valid network address in the specified address family");
+                return (EXECUTION_FAILURE);
+
+            case 1:
+                break;
+        }
+
+        intmax_t integer;
+        if (legal_number(port, &integer) == 0)
+            return (EX_USAGE);
+        if (integer < 0) {
+            warnx("bind: argv[3] contains a negative port number");
+            return (EXECUTION_FAILURE);
+        } else if (integer > 65535) {
+            warnx("bind: argv[3] contains a port number greaeter than 65535");
+            return (EXECUTION_FAILURE);
+        }
+
+        addr.ipv4.sin_port = htons(integer);
+    } else {
+        warnx("bind: Unknown argv[1]");
+        return (EX_USAGE);
+    }
+
+          // struct sockaddr_in {
+          //     sa_family_t    sin_family; /* address family: AF_INET */
+          //     in_port_t      sin_port;   /* port in network byte order */
+          //     struct in_addr sin_addr;   /* internet address */
+          // };
+
+          // /* Internet address. */
+          // struct in_addr {
+          //     uint32_t       s_addr;     /* address in network byte order */
+          // };
+
+    if (bind(socketfd, &addr.addr, addrlen) == -1) {
+        warn("bind: failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin bind_struct = {
+    "bind",       /* builtin name */
+    bind_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "Currently, only AF_UNIX and AF_INET is suppported.",
+        "",
+        "If domain == AF_INET, socketaddr must be in format ipv4_addr:port.",
+        "If domain == AF_UNIX, length of socketaddr must be <= 108.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "bind <int> socketfd domain socketaddr",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
+
 // bind
 // listen
 // accept
@@ -1802,6 +1906,7 @@ int enable_all_builtin(WORD_LIST *_)
         { .word = "sleep", .flags = 0 },
 
         { .word = "create_socket", .flags = 0 },
+        { .word = "bind", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
