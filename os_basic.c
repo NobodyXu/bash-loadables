@@ -1276,7 +1276,7 @@ int recvfds_builtin_impl(int socketfd, struct msghdr *msg, int flags, char *varn
         return 1;
     } else if (result == 0) {
         warnx("recvmsg returns 0!");
-        return 2;
+        return 5;
     }
 
     struct cmsghdr *cmsg = CMSG_FIRSTHDR(msg);
