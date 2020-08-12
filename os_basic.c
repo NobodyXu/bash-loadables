@@ -63,9 +63,13 @@
  */
 #define START_VLA(type, n, varname)                  \
     type vla[n * sizeof(type) > VLA_MAXLEN ? 0 : n]; \
-    if (sizeof(vla) == 0)                            \
+    if (sizeof(vla) == 0) {                          \
         varname = malloc(n * sizeof(type));          \
-    else                                             \
+        if (varname == NULL) {                       \
+            warnx("calloc %zu failed", n * sizeof(type)); \
+            return (EXECUTION_FAILURE);              \
+        }                                            \
+    } else                                           \
         varname = vla
 
 /**
