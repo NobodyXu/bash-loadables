@@ -1258,6 +1258,33 @@ PUBLIC struct builtin recvfds_struct = {
     0                             /* reserved for internal use */
 };
 
+int pause_builtin(WORD_LIST *list)
+{
+    if (check_no_options(list) == -1)
+        return (EX_USAGE);
+
+    if (list != NULL) {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    pause();
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin pause_struct = {
+    "pause",       /* builtin name */
+    pause_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "pause causes the process (or thread) to sleep until a signal is delivered ",
+        "that either terminates the process or causes the invocation of a signal-catching function.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "pause",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
 int enable_all_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -1293,6 +1320,8 @@ int enable_all_builtin(WORD_LIST *_)
         { .word = "fdputs", .flags = 0 },
         { .word = "sendfds", .flags = 0 },
         { .word = "recvfds", .flags = 0 },
+
+        { .word = "pause", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
