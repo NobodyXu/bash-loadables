@@ -610,24 +610,27 @@ int fexecve_builtin(WORD_LIST *list)
         return (EX_USAGE);
     list = list->next;
 
-    int argc = list_length(list);
-    if (argc == 0) {
+    if (list == NULL) {
         builtin_usage();
         return (EX_USAGE);
-    } else if (argc > sysconf(_SC_ARG_MAX)) {
+    }
+
+    int argc = list_length(list);
+    if (argc > sysconf(_SC_ARG_MAX)) {
         warnx("Too many arguments!");
         return (EX_USAGE);
     }
 
     {
-        // Use varadic array, since the maximum size of 
-        // argv is (sizeof 1 / 4 of the stack) + 1.
-        char *argv[argc + 1];
+        char **argv;
+        START_VLA(char*, argc + 1, argv);
 
         to_argv(list, argc, (const char**) argv);
         argv[argc] = NULL;
 
         fexecve(fd, argv, environ);
+
+        END_VLA(argv);
     }
 
     warn("fexecve failed");
