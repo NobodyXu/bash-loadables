@@ -1278,7 +1278,7 @@ int sendfds_builtin_impl(int socketfd, int fd_cnt, const struct msghdr *msg, int
         if (str2fd(list->word->word, &fd) == -1)
             return (EX_USAGE);
 
-        cmsg_data[i] = fd;
+        memcpy(cmsg_data + i, &fd, sizeof(int));
     }
 
     ssize_t result;
@@ -1403,9 +1403,12 @@ int recvfds_builtin_impl(int socketfd, struct msghdr *msg, int flags, char *varn
     int nfd_readin = (cmsg->cmsg_len - CMSG_ALIGN(sizeof(struct cmsghdr))) / sizeof(int);
     int *cmsg_data = (int*) CMSG_DATA(cmsg);
 
+    int fd;
     for (size_t i = 0; i != nfd_readin; ++i) {
+        memcpy(&fd, cmsg_data + i, sizeof(int));
+
         char buffer[sizeof(STR(INT_MAX))];
-        snprintf(buffer, sizeof(buffer), "%d", cmsg_data[i]);
+        snprintf(buffer, sizeof(buffer), "%d", fd);
 
         array_insert(array, i, buffer);
     }
