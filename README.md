@@ -40,9 +40,20 @@ enable_all
  - `getresgid`
  - `setresuid`
  - `setresgid`
+ - `has_supplementary_group_member`
+ - `get_supplementary_groups`
+ - `set_supplementary_groups`
  - `create_unixsocketpair`
  - `fdputs`
+ - `fdecho`
  - `sendfds`
  - `recvfds`
+ - `pause`
+ - `sleep`
+ - `create_socket`
+ - `bind`
+ - `listen`
+ - `accept`
+ - `connect`
  - `enable_all`
 
