@@ -96,7 +96,7 @@
  */
 #define END_VLA(varname)  \
     if (sizeof(vla) == 0) \
-        free(varname)
+        (free)(varname)
 
 #define STR_IMPL_(x) #x      //stringify argument
 #define STR(x) STR_IMPL_(x)  //indirection to expand argument macros
