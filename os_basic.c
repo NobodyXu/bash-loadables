@@ -1049,6 +1049,58 @@ PUBLIC struct builtin get_supplementary_groups_struct = {
     0                           /* reserved for internal use */
 };
 
+int set_supplementary_groups_builtin_impl(int ngids, gid_t *gids, WORD_LIST *list)
+{
+    for (int i = 0; i != ngids; ++i, list = list->next)
+        if (parse_group(gids + i, list->word->word) == -1)
+            return (EXECUTION_FAILURE);
+
+    if (ngids == 0)
+        gids = NULL;
+
+    if (setgroups(ngids, gids) == -1) {
+        warn("setgroups failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+int set_supplementary_groups_builtin(WORD_LIST *list)
+{
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    int ngids = list_length(list);
+    if (ngids > NGROUPS_MAX) {
+        warnx("set_supplementary_groups: Too many supplementary groups specified!");
+        return (EXECUTION_FAILURE);
+    }
+
+    gid_t *gids;
+    START_VLA(gid_t, ngids, gids);
+
+    int ret = set_supplementary_groups_builtin_impl(ngids, gids, list);
+
+    END_VLA(gids);
+
+    return ret;
+}
+PUBLIC struct builtin set_supplementary_groups_struct = {
+    "set_supplementary_groups",                 /* builtin name */
+    set_supplementary_groups_builtin,              /* function implementing the builtin */
+    BUILTIN_ENABLED,             /* initial flags for builtin */
+    (char*[]){
+        "set_supplementary_groups set the supplementary groups of the process.",
+        "Number of groups specified must be <= NGROUPS_MAX (32 before Linux 2.6.4; 65536 since Linux 2.6.4).",
+        "",
+        "To use this builtin, calling process must have CAP_SETGID in the user namespace it resides",
+        "and $(cat /proc/self/setgroups) = \"allow\".",
+        (char*) NULL
+    },                          /* array of long documentation strings. */
+    "set_supplementary_groups gid/group ...",      /* usage synopsis; becomes short_doc */
+    0                           /* reserved for internal use */
+};
+
 int create_unixsocketpair_builtin(WORD_LIST *list)
 {
     if (check_no_options(&list) == -1)
@@ -1554,6 +1606,7 @@ int enable_all_builtin(WORD_LIST *_)
         { .word = "setresgid", .flags = 0 },
         { .word = "has_supplementary_group_member", .flags = 0 },
         { .word = "get_supplementary_groups", .flags = 0 },
+        { .word = "set_supplementary_groups", .flags = 0 },
 
         { .word = "create_unixsocketpair", .flags = 0 },
         { .word = "fdputs", .flags = 0 },
