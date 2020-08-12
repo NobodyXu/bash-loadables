@@ -224,12 +224,12 @@ int to_argv(WORD_LIST *l, int argc, const char *argv[])
  * This function call will also reset_internal_getopt and set list = loptend
  * for you.
  */
-int check_no_options(WORD_LIST *list)
+int check_no_options(WORD_LIST **list)
 {
     reset_internal_getopt();
-    if (no_options(list)) // If options present
+    if (no_options(*list)) // If options present
         return -1;
-    list = loptend;
+    *list = loptend;
     return 0;
 }
 
@@ -506,7 +506,7 @@ PUBLIC struct builtin create_tmpfile_struct = {
 
 int lseek_builtin(WORD_LIST *list)
 {
-    if (check_no_options(list) == -1)
+    if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
     const char *argv[3];
@@ -573,7 +573,7 @@ PUBLIC struct builtin lseek_struct = {
 
 int fexecve_builtin(WORD_LIST *list)
 {
-    if (check_no_options(list) == -1)
+    if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
     if (list == NULL) {
@@ -639,7 +639,7 @@ PUBLIC struct builtin fexecve_struct = {
 
 int flink_builtin(WORD_LIST *list)
 {
-    if (check_no_options(list) == -1)
+    if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
     const char *argv[2];
@@ -689,7 +689,7 @@ PUBLIC struct builtin flink_struct = {
 
 int fchmod_builtin(WORD_LIST *list)
 {
-    if (check_no_options(list) == -1)
+    if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
     const char *argv[2];
@@ -729,7 +729,7 @@ PUBLIC struct builtin fchmod_struct = {
 
 int fchown_builtin(WORD_LIST *list)
 {
-    if (check_no_options(list) == -1)
+    if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
     const char *argv[2];
@@ -794,7 +794,7 @@ PUBLIC struct builtin fchown_struct = {
 
 int getresid_impl(WORD_LIST *list, int (*getter)(uint32_t*, uint32_t*, uint32_t*))
 {
-    if (check_no_options(list) == -1)
+    if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
     const char *argv[3];
@@ -849,7 +849,7 @@ PUBLIC struct builtin getresgid_struct = {
 int setresid_impl(WORD_LIST *list, int (*setter)(uint32_t, uint32_t, uint32_t), const char *function_name, 
                   int (*parser)(uint32_t*, const char*))
 {
-    if (check_no_options(list) == -1)
+    if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
     const char *argv[3];
@@ -936,7 +936,7 @@ PUBLIC struct builtin setresgid_struct = {
 
 int create_unixsocketpair_builtin(WORD_LIST *list)
 {
-    if (check_no_options(list) == -1)
+    if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
     const char *argv[3];
@@ -983,7 +983,7 @@ PUBLIC struct builtin create_unixsocketpair_struct = {
 
 int fdputs_builtin(WORD_LIST *list)
 {
-    if (check_no_options(list) == -1)
+    if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
     const char *argv[2];
@@ -1260,7 +1260,7 @@ PUBLIC struct builtin recvfds_struct = {
 
 int pause_builtin(WORD_LIST *list)
 {
-    if (check_no_options(list) == -1)
+    if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
     if (list != NULL) {
@@ -1287,7 +1287,7 @@ PUBLIC struct builtin pause_struct = {
 
 int has_supplementary_group_member_builtin(WORD_LIST *list)
 {
-    if (check_no_options(list) == -1)
+    if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
     const char *argv[1];
