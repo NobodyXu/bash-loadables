@@ -1209,6 +1209,8 @@ int readv_wrapper(int fd, int iovcnt, struct iovec *iov, size_t total_len)
         if (ret == -1) {
             if (errno == EINTR)
                 continue;
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                return 10;
             warn("writev(%d, %p, %d) failed", fd, iov, iovcnt);
             return (EXECUTION_FAILURE);
         }
@@ -1262,6 +1264,8 @@ PUBLIC struct builtin fdecho_struct = {
     (char*[]){
         "fdecho write msgs to fd without newline.",
         "To use ascii escapes, try fdecho $'hello, world!\n\' $'thello'",
+        "",
+        "If the operation would block, returns 10.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "fdecho <int> fd msgs ...",      /* usage synopsis; becomes short_doc */
