@@ -1018,6 +1018,7 @@ PUBLIC struct builtin fdputs_struct = {
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
         "fdputs write msg to fd without newline.",
+        "To use ascii escapes, try 'fdputs $\"hello, world!\n\"",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "fdputs <int> fd msg",      /* usage synopsis; becomes short_doc */
