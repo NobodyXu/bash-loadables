@@ -1303,7 +1303,7 @@ int has_supplementary_group_member_builtin(WORD_LIST *list)
 }
 PUBLIC struct builtin has_supplementary_group_member_struct = {
     "has_supplementary_group_member",       /* builtin name */
-    pause_builtin, /* function implementing the builtin */
+    has_supplementary_group_member_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
         "Check whether process has group/gid in its supplementary groups.",
