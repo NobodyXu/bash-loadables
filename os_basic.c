@@ -85,7 +85,7 @@
         } else {                                     \
             varname = calloc(n, sizeof(type));       \
             if (varname == NULL) {                   \
-                warnx("calloc %zu failed", n * sizeof(vla)); \
+                warnx("calloc %zu failed", n * sizeof(type)); \
                 return (EXECUTION_FAILURE);          \
             }                                        \
         }                                            \
