@@ -1747,6 +1747,8 @@ PUBLIC struct builtin create_socket_struct = {
         "",
         "If '-N' is passed, then the socket is marked non-blocking.",
         "If '-C' is passed, then the socket is marked close-on-exec.",
+        "",
+        "Currently, only AF_UNIX, AF_INET and AF_INET6 is suppported.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "create_socket [-NC] domain type <int> protocol var",      /* usage synopsis; becomes short_doc */
