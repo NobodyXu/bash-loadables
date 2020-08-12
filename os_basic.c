@@ -1762,7 +1762,7 @@ int bind_builtin(WORD_LIST *list)
 
     const char *argv[3];
     if (to_argv(list, 3, argv) == -1)
-        return -1;
+        return (EX_USAGE);
 
     int socketfd;
     if (str2fd(argv[0], &socketfd) == -1)
