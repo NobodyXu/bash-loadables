@@ -586,11 +586,11 @@ int lseek_builtin(WORD_LIST *list)
     }
 
     int whence;
-    if (strcmp(argv[2], "SEEK_SET") == 0)
+    if (strcasecmp(argv[2], "SEEK_SET") == 0)
         whence = SEEK_SET;
-    else if (strcmp(argv[2], "SEEK_CUR") == 0)
+    else if (strcasecmp(argv[2], "SEEK_CUR") == 0)
         whence = SEEK_CUR;
-    else if (strcmp(argv[2], "SEEK_END") == 0)
+    else if (strcasecmp(argv[2], "SEEK_END") == 0)
         whence = SEEK_CUR;
     else {
         builtin_usage();
@@ -612,13 +612,13 @@ PUBLIC struct builtin lseek_struct = {
     (char*[]){
         "reposition the file offset of fd to the offset according to the third argument:",
         "",
-        "SEEK_SET",
+        "SEEK_SET (case insensitive)",
         "    The file offset is set to offset bytes.",
         "",
-        "SEEK_CUR",
+        "SEEK_CUR (case insensitive)",
         "    The file offset is set to its current location plus offset bytes.",
         "",
-        "SEEK_END",
+        "SEEK_END (case insensitive)",
         "    The file offset is set to the size of the file plus offset bytes.", 
         "",
         "lseek() allows the file offset to be set beyond the end of the file ",
