@@ -1042,7 +1042,7 @@ PUBLIC struct builtin fdputs_struct = {
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
         "fdputs write msg to fd without newline.",
-        "To use ascii escapes, try 'fdputs $\"hello, world!\n\"",
+        "To use ascii escapes, try fdputs $'hello, world!\n'",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "fdputs <int> fd msg",      /* usage synopsis; becomes short_doc */
@@ -1119,7 +1119,7 @@ PUBLIC struct builtin fdecho_struct = {
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
         "fdecho write msgs to fd without newline.",
-        "To use ascii escapes, try 'fdecho $\"hello, world!\n\" $\"\thello\"",
+        "To use ascii escapes, try fdecho $'hello, world!\n\' $'thello'",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "fdecho <int> fd msgs ...",      /* usage synopsis; becomes short_doc */
