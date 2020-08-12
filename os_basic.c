@@ -1918,50 +1918,44 @@ int accept_builtin(WORD_LIST *list)
     }
     list = loptend;
 
-    int socketfd;
-    if (readin_fd(&list, &socketfd) == -1)
+    const char *argv[2];
+    if (to_argv(list, 2, argv) == -1)
         return (EX_USAGE);
 
-    int backlog;
-    switch (str2pint(argv[1], &backlog)) {
-        case -1:
-            warnx("listen: argv[2] is not an integer");
-            return (EX_USAGE);
-        case -2:
-            warnx("listen: argv[2] out of range");
-            return (EX_USAGE);
-        case 0:
-            break;
-    }
+    int socketfd;
+    if (str2fd(argv[0], &socketfd) == -1)
+        return (EX_USAGE);
 
-    if (listen(socketfd, backlog) == -1) {
-        warn("listen: failed");
+    int fd;
+    do {
+        fd = accept4(socketfd, NULL, NULL, flags);
+    } while (fd == -1 && errno == EINTR);
+
+    if (fd == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            return 10;
+        warn("accept failed");
         return (EXECUTION_FAILURE);
     }
 
+    bind_var_to_int((char*) argv[1], fd);
+
     return (EXECUTION_SUCCESS);
 }
-PUBLIC struct builtin listen_struct = {
-    "listen",       /* builtin name */
-    listen_builtin, /* function implementing the builtin */
+PUBLIC struct builtin accept_struct = {
+    "accept",       /* builtin name */
+    accept_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
-        "The socketfd is a fd that refers to a socket of type SOCK_STREAM or SOCK_SEQPACKET.",
+        "accepts a new connection and put its fd into $var.",
         "",
-        "The backlog defines the max length to which the queue of pending connections for socketfd may grow.",
-        "If backlog is greater than the value in /proc/sys/net/core/somaxconn, then it is ",
-        "silently truncated to that value.",
-        "Since Linux 5.4, the default in this file is 4096; in earlier kernels, the default value is 128.",
-        "In kernels before 2.4.25, this limit was a hard coded value, SOMAXCONN, with the value 128.",
+        "If the operation would block, returns 10.",
         (char*) NULL
     },                            /* array of long documentation strings. */
-    "listen <int> socketfd <int> backlog",      /* usage synopsis; becomes short_doc */
+    "accept [-NC] <int> socketfd var",      /* usage synopsis; becomes short_doc */
     0                             /* reserved for internal use */
 };
 
-
-
-// accept
 // connect
 
 // epoll
