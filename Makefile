@@ -17,7 +17,7 @@
 CC = clang
 
 CFLAGS := -std=c11 -Oz -s -fvisibility=hidden -Wno-parentheses -Wno-format-security
-CFLAGS += -fno-asynchronous-unwind-tables -fno-unwind-tables 
+CFLAGS += -fno-asynchronous-unwind-tables -fno-unwind-tables  -fmerge-all-constants
 LOCAL_CFLAGS = 
 DEFS = -DHAVE_CONFIG_H
 LOCAL_DEFS = -DSHELL
