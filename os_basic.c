@@ -1285,6 +1285,48 @@ PUBLIC struct builtin pause_struct = {
     0                             /* reserved for internal use */
 };
 
+int has_supplementary_group_member_builtin(WORD_LIST *list)
+{
+    if (check_no_options(list) == -1)
+        return (EX_USAGE);
+
+    const char *argv[1];
+    if (to_argv(list, 1, argv) == -1)
+        return (EX_USAGE);
+
+    gid_t gid;
+    if (parse_group(&gid, argv[0]) == -1)
+        return 3;
+
+    return !group_member(gid);
+}
+PUBLIC struct builtin has_supplementary_group_member_struct = {
+    "has_supplementary_group_member",       /* builtin name */
+    pause_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "Check whether process has group/gid in its supplementary groups.",
+        "",
+        "Returns 0 if it is in the supplementary group,",
+        "returns 1 if not,",
+        "returns 2 on wrong usage,",
+        "returns 3 on error.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "has_supplementary_group_member group/gid",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
+
+
+// socket
+// bind
+// listen
+// accept
+// connect
+
+// epoll
+
 int enable_all_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -1315,6 +1357,7 @@ int enable_all_builtin(WORD_LIST *_)
         { .word = "getresgid", .flags = 0 },
         { .word = "setresuid", .flags = 0 },
         { .word = "setresgid", .flags = 0 },
+        { .word = "has_supplementary_group_member", .flags = 0 },
 
         { .word = "create_unixsocketpair", .flags = 0 },
         { .word = "fdputs", .flags = 0 },
