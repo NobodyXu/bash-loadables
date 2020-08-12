@@ -668,7 +668,7 @@ int fexecve_builtin(WORD_LIST *list)
     if (errno == ENOSYS)
         return 128;
     else if (errno == ENOENT)
-        return 2;
+        return 3;
     else
         return 1;
 }
@@ -687,7 +687,7 @@ PUBLIC struct builtin fexecve_struct = {
         "On error:",
         "",
         "    If fd is invalid, returns 1;",
-        "    If close-on-exec flag is set on fd and fd refers to a script, returns 2;",
+        "    If close-on-exec flag is set on fd and fd refers to a script, returns 3;",
         "    If kernel does not provide execveat and /proc is inaccessible, returns 128.",
         (char*) NULL
     },                          /* array of long documentation strings. */
@@ -924,7 +924,7 @@ int setresid_impl(WORD_LIST *list, int (*setter)(uint32_t, uint32_t, uint32_t), 
         if (errno == EAGAIN)
             return 1;
         else
-            return 2;
+            return 3;
     }
 
     return (EXECUTION_SUCCESS);
@@ -961,7 +961,7 @@ PUBLIC struct builtin setresuid_struct = {
         "    RLIMIT_NPROC resource limit is reached, returns 1.",
         "    ",
         "    If at least one of the ID is not valid in this user namespace or the operation is not",
-        "    permitted (lacks CAP_SETUID or CAP_SETGID), returns 2.",
+        "    permitted (lacks CAP_SETUID or CAP_SETGID), returns 3.",
         (char*) NULL
     },                          /* array of long documentation strings. */
     "setresuid var1 var2 var3",      /* usage synopsis; becomes short_doc */
