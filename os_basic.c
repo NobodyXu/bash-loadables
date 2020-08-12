@@ -1170,6 +1170,8 @@ int fdputs_builtin(WORD_LIST *list)
         if (result == -1) {
             if (errno == EINTR)
                 continue;
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                return 10;
 
             warn("write failed");
             return 1;
@@ -1187,6 +1189,8 @@ PUBLIC struct builtin fdputs_struct = {
     (char*[]){
         "fdputs write msg to fd without newline.",
         "To use ascii escapes, try fdputs $'hello, world!\n'",
+        "",
+        "If the operation would block, returns 10.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "fdputs <int> fd msg",      /* usage synopsis; becomes short_doc */
