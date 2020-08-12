@@ -1649,6 +1649,97 @@ PUBLIC struct builtin has_supplementary_group_member_struct = {
     0                             /* reserved for internal use */
 };
 
+int create_socket_builtin(WORD_LIST *list)
+{
+    reset_internal_getopt();
+
+    int flags = 0;
+    for (int opt; (opt = internal_getopt(list, "NC")) != -1; ) {
+        switch (opt) {
+        case 'N':
+            flags |= SOCK_NONBLOCK;
+            break;
+
+        case 'C':
+            flags |= SOCK_CLOEXEC;
+            break;
+
+
+        CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
+    }
+    list = loptend;
+
+    const char *argv[4];
+    if (to_argv(list, 4, argv) == -1)
+        return (EX_USAGE);
+
+    int domain;
+    if (strcasecmp(argv[0], "AF_UNIX") == 0)
+        domain = AF_UNIX;
+    else if (strcasecmp(argv[0], "AF_INET") == 0)
+        domain = AF_INET;
+    else if (strcasecmp(argv[0], "AF_INET6") == 0)
+        domain = AF_INET6;
+    else {
+        warnx("create_socket: Unknown argv[1]");
+        return (EX_USAGE);
+    }
+
+    int type;
+    if (strcasecmp(argv[1], "SOCK_STREAM") == 0)
+        type = SOCK_STREAM;
+    else if (strcasecmp(argv[1], "SOCK_DGRAM") == 0)
+        type = SOCK_DGRAM;
+    else if (strcasecmp(argv[1], "SOCK_SEQPACKET") == 0)
+        type = SOCK_SEQPACKET;
+    else {
+        warnx("create_socket: Unknown argv[2]");
+        return (EX_USAGE);
+    }
+
+    int protocol;
+    switch (str2int(argv[2], &protocol)) {
+        case -1:
+            warnx("create_socket: argv[3] is not an integer");
+            return (EX_USAGE);
+        case -2:
+            warnx("create_socket: argv[3] too large");
+            return (EX_USAGE);
+
+        case 0:
+            break;
+    }
+
+    int socketfd = socket(domain, type | flags, protocol);
+    if (socketfd == -1) {
+        warn("create_socket failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    bind_var_to_int((char*) argv[3], socketfd);
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin create_socket_struct = {
+    "create_socket",       /* builtin name */
+    create_socket_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "create a socket and put it in $var.",
+        "",
+        "If '-N' is passed, then the socket is marked non-blocking.",
+        "If '-C' is passed, then the socket is marked close-on-exec.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "create_socket [-NC] domain type <int> protocol var",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
 // socket
 // bind
 // listen
@@ -1701,6 +1792,8 @@ int enable_all_builtin(WORD_LIST *_)
 
         { .word = "pause", .flags = 0 },
         { .word = "sleep", .flags = 0 },
+
+        { .word = "create_socket", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
