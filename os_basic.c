@@ -1264,6 +1264,48 @@ PUBLIC struct builtin sendfds_struct = {
     0                             /* reserved for internal use */
 };
 
+int recvfds_builtin_impl(int socketfd, struct msghdr *msg, int flags, char *varname)
+{
+    ssize_t result;
+    do {
+        result = recvmsg(socketfd, msg, flags);
+    } while (result == -1 && errno == EINTR);
+
+    if (result == -1) {
+        warn("recvmsg failed");
+        return 1;
+    } else if (result == 0) {
+        warnx("recvmsg returns 0!");
+        return 2;
+    }
+
+    struct cmsghdr *cmsg = CMSG_FIRSTHDR(msg);
+    
+    if (cmsg == NULL) {
+        warnx("No cmsg is received");
+        return 4;
+    }
+
+    if (!(cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)) {
+        warnx("Unexpected: received cmsg isn't the type that contains fds");
+        return 3;
+    }
+
+    SHELL_VAR *var = make_new_array_variable(varname);
+    ARRAY *array = array_cell(var);
+
+    int nfd_readin = (cmsg->cmsg_len - CMSG_ALIGN(sizeof(struct cmsghdr))) / sizeof(int);
+    int *cmsg_data = (int*) CMSG_DATA(cmsg);
+
+    for (size_t i = 0; i != nfd_readin; ++i) {
+        char buffer[sizeof(STR(INT_MAX))];
+        snprintf(buffer, sizeof(buffer), "%d", cmsg_data[i]);
+
+        array_insert(array, i, buffer);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
 int recvfds_builtin(WORD_LIST *list)
 {
     int flags = 0;
@@ -1307,7 +1349,8 @@ int recvfds_builtin(WORD_LIST *list)
             return (EX_USAGE);
     }
 
-    char buffer[CMSG_SPACE(sizeof(int) * fd_cnt)];
+    char *buffer;
+    START_VLA(char, CMSG_SPACE(sizeof(int) * fd_cnt), buffer);
 
     char recvbuf[1];
     struct iovec iov = {
@@ -1322,46 +1365,11 @@ int recvfds_builtin(WORD_LIST *list)
         .msg_iovlen = 1,
 
         .msg_control = buffer,
-        .msg_controllen = sizeof(buffer)
+        .msg_controllen = CMSG_SPACE(sizeof(int) * fd_cnt)
     };
 
-    ssize_t result;
-    do {
-        result = recvmsg(socketfd, &msg, flags);
-    } while (result == -1 && errno == EINTR);
-
-    if (result == -1) {
-        warn("recvmsg failed");
-        return 1;
-    } else if (result == 0) {
-        warnx("recvmsg returns 0!");
-        return 2;
-    }
-
-    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
-    
-    if (cmsg == NULL) {
-        warnx("No cmsg is received");
-        return (4);
-    }
-
-    if (!(cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)) {
-        warnx("Unexpected: received cmsg isn't the type that contains fds");
-        return (3);
-    }
-
-    SHELL_VAR *var = make_new_array_variable((char*) argv[2]);
-    ARRAY *array = array_cell(var);
-
-    int nfd_readin = (cmsg->cmsg_len - CMSG_ALIGN(sizeof(struct cmsghdr))) / sizeof(int);
-    int *cmsg_data = (int*) CMSG_DATA(cmsg);
-
-    for (size_t i = 0; i != nfd_readin; ++i) {
-        char buffer[sizeof(STR(INT_MAX))];
-        snprintf(buffer, sizeof(buffer), "%d", cmsg_data[i]);
-
-        array_insert(array, i, buffer);
-    }
+    recvfds_builtin_impl(socketfd, &msg, flags, (char*) argv[2]);
+    END_VLA(buffer);
 
     return (EXECUTION_SUCCESS);
 }
