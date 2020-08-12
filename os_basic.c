@@ -33,6 +33,7 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -50,6 +51,29 @@
  * on modern linux kernel, SCM_MAX_FD is equal to 253
  */
 #define SCM_MAX_FD 253
+
+#define VLA_MAXLEN (50 * sizeof(void*))
+
+/**
+ * START_VLA automatically switched between VLA and malloc.
+ *
+ * It must be put in a single statement.
+ *
+ * There can only be one START_VLA and one END_VLA in one scope.
+ */
+#define START_VLA(type, n, varname)                  \
+    type vla[n * sizeof(type) > VLA_MAXLEN ? 0 : n]; \
+    if (sizeof(vla) == 0)                            \
+        varname = malloc(n * sizeof(type));          \
+    else                                             \
+        varname = vla
+
+/**
+ * END_VLA must be put in a single statement.
+ */
+#define END_VLA(varname)  \
+    if (sizeof(vla) == 0) \
+        free(varname)
 
 #define STR_IMPL_(x) #x      //stringify argument
 #define STR(x) STR_IMPL_(x)  //indirection to expand argument macros
@@ -1025,6 +1049,83 @@ PUBLIC struct builtin fdputs_struct = {
     0                             /* reserved for internal use */
 };
 
+int readv_wrapper(int fd, int iovcnt, struct iovec *iov, size_t total_len)
+{
+    if (total_len > SSIZE_MAX) {
+        warnx("fdecho: total_len of input %zu is greater than SSIZE_MAX", total_len);
+        return (EXECUTION_FAILURE);
+    }
+
+    for (; ;) {
+        ssize_t ret = writev(fd, iov, iovcnt);
+        if (ret == -1) {
+            if (errno == EINTR)
+                continue;
+            warn("writev(%d, %p, %d) failed", fd, iov, iovcnt);
+            return (EXECUTION_FAILURE);
+        }
+
+        for (; iov->iov_len <= ret; ++iov, --iovcnt)
+            ret -= iov->iov_len;
+
+        if (iovcnt == 0)
+            break;
+
+        iov->iov_base += ret;
+        iov->iov_len -= ret;
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+int fdecho_builtin(WORD_LIST *list)
+{
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    if (list == NULL) {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    int fd;
+    if (str2fd(list->word->word, &fd) == -1)
+        return (EX_USAGE);
+    list = list->next;
+
+    if (list == NULL)
+        return (EXECUTION_SUCCESS);
+    int argc = list_length(list);
+
+    struct iovec *buffer;
+    START_VLA(struct iovec, argc, buffer);
+
+    size_t total_len = 0;
+    for (size_t i = 0; i != argc; ++i, list = list->next) {
+        buffer[i].iov_base = list->word->word;
+        buffer[i].iov_len = strlen(buffer[i].iov_base);
+
+        total_len += buffer[i].iov_len;
+    }
+
+    int ret = readv_wrapper(fd, argc, buffer, total_len);
+
+    END_VLA(buffer);
+
+    return ret;
+}
+PUBLIC struct builtin fdecho_struct = {
+    "fdecho",       /* builtin name */
+    fdecho_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "fdecho write msgs to fd without newline.",
+        "To use ascii escapes, try 'fdecho $\"hello, world!\n\" $\"\thello\"",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "fdecho <int> fd msgs ...",      /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
 int sendfds_builtin(WORD_LIST *list)
 {
     int flags = 0;
@@ -1362,6 +1463,7 @@ int enable_all_builtin(WORD_LIST *_)
 
         { .word = "create_unixsocketpair", .flags = 0 },
         { .word = "fdputs", .flags = 0 },
+        { .word = "fdecho", .flags = 0 },
         { .word = "sendfds", .flags = 0 },
         { .word = "recvfds", .flags = 0 },
 
