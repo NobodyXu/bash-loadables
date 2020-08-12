@@ -992,6 +992,63 @@ PUBLIC struct builtin setresgid_struct = {
     0                           /* reserved for internal use */
 };
 
+int get_supplementary_groups_builtin(WORD_LIST *list)
+{
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    const char *varname;
+    if (to_argv(list, 1, &varname) == -1)
+        return (EX_USAGE);
+
+    int result;
+    do {
+        int ngids = getgroups(0, NULL);
+
+        gid_t *gids;
+        START_VLA(gid_t, ngids, gids);
+
+        result = getgroups(ngids, gids);
+        if (result == ngids) {
+            SHELL_VAR *var = make_new_array_variable((char*) varname);
+            ARRAY *array = array_cell(var);
+
+            _Static_assert(sizeof(gid_t) == sizeof(uint32_t), "not supported!");
+            _Static_assert((gid_t) -1 > 0, "not supported!");
+
+            char buffer[sizeof(STR(UINT_MAX))];
+            for (int i = 0; i != ngids; ++i) {
+                snprintf(buffer, sizeof(buffer), "%zu", (size_t) gids[i]);
+
+                array_insert(array, i, buffer);
+            }
+        }
+
+        END_VLA(gids);
+    } while (result == -1 && errno == EINVAL);
+
+    if (result == -1) {
+        warn("getgroups failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin get_supplementary_groups_struct = {
+    "get_supplementary_groups",                 /* builtin name */
+    get_supplementary_groups_builtin,              /* function implementing the builtin */
+    BUILTIN_ENABLED,             /* initial flags for builtin */
+    (char*[]){
+        "get_supplementary_groups will store gid of supplementary groups into varname as array",
+        "",
+        "It is unspecified whether the effective gid of the calling process is included.",
+        "Thus, an application should also call getresgid for effective gid.",
+        (char*) NULL
+    },                          /* array of long documentation strings. */
+    "get_supplementary_groups varname",      /* usage synopsis; becomes short_doc */
+    0                           /* reserved for internal use */
+};
+
 int create_unixsocketpair_builtin(WORD_LIST *list)
 {
     if (check_no_options(&list) == -1)
@@ -1496,6 +1553,7 @@ int enable_all_builtin(WORD_LIST *_)
         { .word = "setresuid", .flags = 0 },
         { .word = "setresgid", .flags = 0 },
         { .word = "has_supplementary_group_member", .flags = 0 },
+        { .word = "get_supplementary_groups", .flags = 0 },
 
         { .word = "create_unixsocketpair", .flags = 0 },
         { .word = "fdputs", .flags = 0 },
