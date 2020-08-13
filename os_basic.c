@@ -1893,7 +1893,7 @@ PUBLIC struct builtin listen_struct = {
     listen_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
-        "The socketfd is a fd that refers to a socket of type SOCK_STREAM or SOCK_SEQPACKET.",
+        "The socketfd should refer to a socket of type SOCK_STREAM or SOCK_SEQPACKET.",
         "",
         "The backlog defines the max length to which the queue of pending connections for socketfd may grow.",
         "If backlog is greater than the value in /proc/sys/net/core/somaxconn, then it is ",
