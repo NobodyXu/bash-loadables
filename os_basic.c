@@ -1623,7 +1623,8 @@ PUBLIC struct builtin sleep_struct = {
     sleep_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
-        "If -R is specified, then sleep will restart afer a signal is delivered.",
+        "If -R is not specified, then sleep cannot be interrupted.",
+        "If -R is specified and an signal handler is executed, then sleep will just return and will not resume sleeping.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "sleep [-R] seconds nanoseconds",      /* usage synopsis; becomes short_doc */
