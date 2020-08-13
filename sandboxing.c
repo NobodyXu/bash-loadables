@@ -160,6 +160,76 @@ PUBLIC struct builtin clone_ns_struct = {
     0                             /* reserved for internal use */
 };
 
+int unshare_ns_builtin(WORD_LIST *list)
+{
+    reset_internal_getopt();
+
+    int flags = 0;
+    for (int opt; (opt = internal_getopt(list, "CINMPuU")) != -1; ) {
+        switch (opt) {
+        case 'C':
+            flags |= CLONE_NEWCGROUP;
+            break;
+
+        case 'I':
+            flags |= CLONE_NEWIPC;
+            break;
+
+        case 'N':
+            flags |= CLONE_NEWNET;
+            break;
+
+        case 'M':
+            flags |= CLONE_NEWNS;
+            break;
+
+        case 'P':
+            flags |= CLONE_NEWPID;
+            break;
+
+        case 'u':
+            flags |= CLONE_NEWUSER;
+            break;
+
+        case 'U':
+            flags |= CLONE_NEWUTS;
+            break;
+
+        CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
+    }
+    list = loptend;
+
+    if (list != NULL) {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    if (unshare(flags) == -1) {
+        warn("unshare failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin unshare_ns_struct = {
+    "unshare_ns",       /* builtin name */
+    unshare_ns_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "unshare_ns puts the process in a new namespace",
+        "",
+        "Check 'help clone_ns' for more information on how to use this function.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "unshare_ns [-CINMPuU]",        /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -182,6 +252,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "enable_no_new_orivs_strict", .flags = 0 },
 
         { .word = "clone_ns", .flags = 0 },
+        { .word = "unshare_ns", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
