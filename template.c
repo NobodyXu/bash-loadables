@@ -1,6 +1,5 @@
 /* fd_ops - loadable builtin that defines fd-related functions */
 
-/* See Makefile for compilation details. */
 #include "bash/config.h"
 #include "bashansi.h"
 #include "loadables.h"
@@ -8,9 +7,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
-
-
-extern char *strerror ();
 
 int template_builtin (WORD_LIST *list)
 {
