@@ -25,6 +25,10 @@ enable -f /path/to/loadable enable_all
 enable_all
 ```
 
+## Get usage/help of builtin
+
+After a builtin is enabled, type `help builtin` to get detailed help.
+
 ## builtins provided by loadables
 
 ### `os_basic`
