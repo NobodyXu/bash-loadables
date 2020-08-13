@@ -1915,7 +1915,14 @@ int os_basic_builtin(WORD_LIST *_)
 
     WORD_DESC words[] = {
         { .word = "-f", .flags = 0 },
-        { .word = (char*) info.dli_fname /* Pretty sure that it's not going to be modified in enable_builtin */, .flags = 0 },
+
+        /**
+         * Pretty sure that it's not going to be modified in enable_builtin.
+         *
+         * And since all other words.word here points to string in .rodata and it works,
+         * I don't think this is a problem.
+         */
+        { .word = (char*) info.dli_fname, .flags = 0 },
 
         { .word = "create_memfd", .flags = 0 },
         { .word = "create_tmpfile", .flags = 0 },
