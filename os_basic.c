@@ -1099,11 +1099,13 @@ PUBLIC struct builtin set_supplementary_groups_struct = {
         "set_supplementary_groups set the supplementary groups of the process.",
         "Number of groups specified must be <= NGROUPS_MAX (32 before Linux 2.6.4; 65536 since Linux 2.6.4).",
         "",
+        "If no group/gid is passed, then supplementary group is cleared",
+        "",
         "To use this builtin, calling process must have CAP_SETGID in the user namespace it resides",
         "and $(cat /proc/self/setgroups) = \"allow\".",
         (char*) NULL
     },                          /* array of long documentation strings. */
-    "set_supplementary_groups gid/group ...",      /* usage synopsis; becomes short_doc */
+    "set_supplementary_groups [gid/group ...]",      /* usage synopsis; becomes short_doc */
     0                           /* reserved for internal use */
 };
 
