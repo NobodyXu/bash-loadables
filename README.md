@@ -21,8 +21,8 @@ make all -j $(nproc)
 enable -f /path/to/loadable builtin_name ...
 
 # Load all builtins from a loadable
-enable -f /path/to/loadable enable_all
-enable_all
+enable -f /path/to/loadable loadable_name
+loadable_name
 ```
 
 ## Get usage/help of builtin
@@ -59,5 +59,5 @@ After a builtin is enabled, type `help builtin` to get detailed help.
  - `listen: usage: listen <int> socketfd <int> backlog`
  - `accept: usage: accept [-NC] <int> socketfd var`
  - `connect: usage: bind <int> socketfd domain socketaddr`
- - `enable_all`
+ - `os_basic`
 

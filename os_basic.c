@@ -1905,10 +1905,10 @@ PUBLIC struct builtin unshare_struct = {
     0                             /* reserved for internal use */
 };
 
-int enable_all_builtin(WORD_LIST *_)
+int os_basic_builtin(WORD_LIST *_)
 {
     Dl_info info;
-    if (dladdr(enable_all_builtin, &info) == 0) {
+    if (dladdr(os_basic_builtin, &info) == 0) {
         warnx("Failed to get path to the shared object itself by dladdr");
         return 1;
     }
@@ -1968,14 +1968,14 @@ int enable_all_builtin(WORD_LIST *_)
 
     return enable_builtin(list);
 }
-PUBLIC struct builtin enable_all_struct = {
-    "enable_all",       /* builtin name */
-    enable_all_builtin, /* function implementing the builtin */
+PUBLIC struct builtin os_basic_struct = {
+    "os_basic",       /* builtin name */
+    os_basic_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
-        "enable_all enables all builtin defined in this file.",
+        "enable all enables all builtin defined in this file.",
         (char*) NULL
     },                            /* array of long documentation strings. */
-    "enable_all",                 /* usage synopsis; becomes short_doc */
+    "os_basic",                 /* usage synopsis; becomes short_doc */
     0                             /* reserved for internal use */
 };

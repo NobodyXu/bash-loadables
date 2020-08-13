@@ -4,8 +4,8 @@ prefix=$(realpath $(dirname "$0"))
 
 source "${prefix}/assert.sh"
 
-enable -f "${prefix}/../os_basic" enable_all
-enable_all
+enable -f "${prefix}/../os_basic" os_basic
+os_basic
 
 create_unixsocketpair stream fd1 fd2
 
