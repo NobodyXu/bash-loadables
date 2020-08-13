@@ -69,3 +69,4 @@ After a builtin is enabled, type `help builtin` to get detailed help.
  - `clone_ns: clone_ns [-VCINMPuU] [var]`
  - `unshare_ns: unshare_ns [-CINMPuU]`
  - `chroot: chroot path`
+ - `setns: setns [-CINMPuU] <int> fd`
