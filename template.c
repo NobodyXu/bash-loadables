@@ -56,6 +56,5 @@ PUBLIC int template_builtin_load (char *name)
 /**
  * Called when `template' is disabled.
  */
-PUBLIC void template_builtin_unload (name)
-     char *name;
+PUBLIC void template_builtin_unload (char *name)
 {}
