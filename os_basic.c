@@ -50,6 +50,8 @@
 #include <netinet/ip.h> /* superset of previous */
 #include <arpa/inet.h>
 
+#include <sched.h>
+
 #include <err.h>
 #include <errno.h>
 
@@ -1999,6 +2001,87 @@ PUBLIC struct builtin connect_struct = {
 
 // timer_create
 
+int clone_fn(void *arg)
+{
+    longjmp(*((jmp_buf*) arg), 1);
+}
+int clone_builtin(WORD_LIST *list)
+{
+    reset_internal_getopt();
+
+    int flags = 0;
+    for (int opt; (opt = internal_getopt(list, "FPVS")) != -1; ) {
+        switch (opt) {
+        case 'F':
+            flags |= CLONE_FILES;
+            break;
+
+        case 'P':
+            flags |= CLONE_PARENT;
+            break;
+
+        case 'V':
+            flags |= CLONE_VFORK;
+            break;
+
+        case 'S':
+            flags |= CLONE_SYSVSEM;
+            break;
+
+        CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
+    }
+    list = loptend;
+
+    const char *varname = NULL;
+    if (to_argv_opt(list, 0, 1, &varname) == -1)
+        return (EX_USAGE);
+
+    int pid;
+    jmp_buf env;
+    if (setjmp(env) == 0) {
+        {
+            char stack[8064];
+            pid = clone(clone_fn, stack, flags, &env);
+        }
+
+        if (pid == -1) {
+            warn("clone failed");
+            return (EXECUTION_FAILURE);
+        }
+    } else
+        pid = 0;
+
+    if (varname)
+        bind_var_to_int((char*) varname, pid);
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin clone_struct = {
+    "clone",       /* builtin name */
+    clone_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "clone creates a new process",
+        "",
+        "If var is present, then the pid is writen to it in parent process, and",
+        "0 is writen to it in the child process.",
+        "",
+        "If '-F' is passed, the child process shares the same fd table as the parent until execve.",
+        "If '-P' is passed, the child process shares the same parent as this process.",
+        "    NOTE that the init process in the PID namespace cannot use this funtionality.",
+        "If '-V' is passed, this process is suspended until the child process calls execve or _exit.",
+        "If '-S' is passed, the child process shares System V semaphore adjustment values.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "clone [-FPVS] [var]",        /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
 int enable_all_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -2047,6 +2130,8 @@ int enable_all_builtin(WORD_LIST *_)
         { .word = "listen", .flags = 0 },
         { .word = "accept", .flags = 0 },
         { .word = "connect", .flags = 0 },
+
+        { .word = "clone", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
