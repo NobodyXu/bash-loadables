@@ -148,6 +148,31 @@ PUBLIC struct builtin unshare_ns_struct = {
     0                             /* reserved for internal use */
 };
 
+int chroot_builtin(WORD_LIST *list)
+{
+    const char *path;
+    if (to_argv(list, 1, &path) == -1)
+        return (EX_USAGE);
+
+    if (chroot(path) == -1) {
+        warn("chroot failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin chroot_struct = {
+    "chroot",       /* builtin name */
+    chroot_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "chroot requires the process to have CAP_SYS_CHROOT capability in its user namespace.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "chroot path",        /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -171,6 +196,7 @@ int sandboxing_builtin(WORD_LIST *_)
 
         { .word = "clone_ns", .flags = 0 },
         { .word = "unshare_ns", .flags = 0 },
+        { .word = "chroot", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
