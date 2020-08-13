@@ -65,7 +65,7 @@
 #define STR_IMPL_(x) #x      //stringify argument
 #define STR(x) STR_IMPL_(x)  //indirection to expand argument macros
 
-static uintmax_t min_unsigned(uintmax_t x, uintmax_t y)
+uintmax_t min_unsigned(uintmax_t x, uintmax_t y)
 {
     return x > y ? y : x;
 }
