@@ -59,5 +59,7 @@ After a builtin is enabled, type `help builtin` to get detailed help.
  - `listen: usage: listen <int> socketfd <int> backlog`
  - `accept: usage: accept [-NC] <int> socketfd var`
  - `connect: usage: bind <int> socketfd domain socketaddr`
+ - `clone: clone [-FPVS] [var]`
+ - `unshare: unshare [-FS]`
  - `os_basic`
 
