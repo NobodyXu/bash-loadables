@@ -40,7 +40,7 @@ bash/config.h: bash/configure
 	$(CC) -fPIC $(CCFLAGS) $(INC) $(LDFLAGS) -o $@ $<
 
 # Persudo recipe for vim linting
-loadables.h.gch: loadables.h
+%.h.gch: %.h
 	$(MAKE) -C bash/
 	$(CC) $(CCFLAGS) $(INC) $<
 
