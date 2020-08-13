@@ -1,4 +1,4 @@
-/* fd_ops - loadable builtin that defines fd-related functions */
+/* os_basic - loadable builtin that exposes basic syscalls in kernel */
 
 #define _LARGEFILE64_SOURCE // for lseek64
 
