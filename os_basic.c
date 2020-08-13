@@ -1913,10 +1913,6 @@ int os_basic_builtin(WORD_LIST *_)
         return 1;
     }
 
-    // The path to file has a upper limit
-    char pathname[strlen(info.dli_fname) + 1];
-    strncpy(pathname, info.dli_fname, sizeof(pathname));
-
     WORD_DESC words[] = {
         { .word = "-f", .flags = 0 },
         { .word = (char*) info.dli_fname /* Pretty sure that it's not going to be modified in enable_builtin */, .flags = 0 },
