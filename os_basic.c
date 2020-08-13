@@ -72,8 +72,6 @@ int str2mode(const char *str, mode_t *mode)
     return 0;
 }
 
-
-
 /**
  * @return NULL on error, otherwise ret value of get_f(name).
  * helper function for retrieving struct passwd* or struct group*.
@@ -201,23 +199,7 @@ int parse_ids(const char *arg, uid_t *uid, gid_t *gid)
 
 int create_memfd_builtin(WORD_LIST *list)
 {
-    reset_internal_getopt();
-
-    unsigned int flags = 0;
-    for (int opt; (opt = internal_getopt(list, "C")) != -1; ) {
-        switch (opt) {
-        case 'C':
-            flags |= MFD_CLOEXEC;
-            break;
-
-        CASE_HELPOPT;
-
-        default:
-            builtin_usage();
-            return (EX_USAGE);
-        }
-    }
-    list = loptend;
+    unsigned flags = PARSE_FLAG(&list, "C", MFD_CLOEXEC);
 
     const char *var;
     if (to_argv(list, 1, &var) == -1)
@@ -257,27 +239,7 @@ PUBLIC struct builtin create_memfd_struct = {
 
 int create_tmpfile_builtin(WORD_LIST *list)
 {
-    reset_internal_getopt();
-
-    int flags = O_TMPFILE;
-    for (int opt; (opt = internal_getopt(list, "CE")) != -1; ) {
-        switch (opt) {
-        case 'C':
-            flags |= O_CLOEXEC;
-            break;
-
-        case 'E':
-            flags |= O_EXCL;
-            break;
-
-        CASE_HELPOPT;
-
-        default:
-            builtin_usage();
-            return (EX_USAGE);
-        }
-    }
-    list = loptend;
+    int flags = O_TMPFILE | PARSE_FLAG(&list, "CE", O_CLOEXEC, O_EXCL);
 
     const char *argv[4];
     int opt_argc = to_argv_opt(list, 3, 1, argv);
@@ -1087,23 +1049,7 @@ int sendfds_builtin_impl(int socketfd, int fd_cnt, const struct msghdr *msg, int
 }
 int sendfds_builtin(WORD_LIST *list)
 {
-    int flags = 0;
-
-    reset_internal_getopt();
-    for (int opt; (opt = internal_getopt(list, "N")) != -1; ) {
-        switch (opt) {
-        case 'N':
-            flags |= MSG_NOSIGNAL;
-            break;
-
-        CASE_HELPOPT;
-
-        default:
-            builtin_usage();
-            return (EX_USAGE);
-        }
-    }
-    list = loptend;
+    int flags = PARSE_FLAG(&list, "N", MSG_NOSIGNAL);
 
     int socketfd;
     if (readin_fd(&list, &socketfd) == -1)
@@ -1206,23 +1152,7 @@ int recvfds_builtin_impl(int socketfd, struct msghdr *msg, int flags, char *varn
 }
 int recvfds_builtin(WORD_LIST *list)
 {
-    int flags = 0;
-
-    reset_internal_getopt();
-    for (int opt; (opt = internal_getopt(list, "C")) != -1; ) {
-        switch (opt) {
-        case 'C':
-            flags |= MSG_CMSG_CLOEXEC;
-            break;
-
-        CASE_HELPOPT;
-
-        default:
-            builtin_usage();
-            return (EX_USAGE);
-        }
-    }
-    list = loptend;
+    int flags = PARSE_FLAG(&list, "C", MSG_CMSG_CLOEXEC);
 
     const char* argv[3];
     if (to_argv(list, 3, argv) == -1)
@@ -1327,23 +1257,7 @@ PUBLIC struct builtin pause_struct = {
 
 int sleep_builtin(WORD_LIST *list)
 {
-    reset_internal_getopt();
-
-    int restart_on_signal = 0;
-    for (int opt; (opt = internal_getopt(list, "R")) != -1; ) {
-        switch (opt) {
-        case 'R':
-            restart_on_signal = 1;
-            break;
-
-        CASE_HELPOPT;
-
-        default:
-            builtin_usage();
-            return (EX_USAGE);
-        }
-    }
-    list = loptend;
+    int restart_on_signal = PARSE_FLAG(&list, "R", 1);
 
     struct timespec rem;
     {
@@ -1441,28 +1355,7 @@ PUBLIC struct builtin has_supplementary_group_member_struct = {
 
 int create_socket_builtin(WORD_LIST *list)
 {
-    reset_internal_getopt();
-
-    int flags = 0;
-    for (int opt; (opt = internal_getopt(list, "NC")) != -1; ) {
-        switch (opt) {
-        case 'N':
-            flags |= SOCK_NONBLOCK;
-            break;
-
-        case 'C':
-            flags |= SOCK_CLOEXEC;
-            break;
-
-
-        CASE_HELPOPT;
-
-        default:
-            builtin_usage();
-            return (EX_USAGE);
-        }
-    }
-    list = loptend;
+    int flags = PARSE_FLAG(&list, "NC", SOCK_NONBLOCK, SOCK_CLOEXEC);
 
     const char *argv[4];
     if (to_argv(list, 4, argv) == -1)
@@ -1685,28 +1578,7 @@ PUBLIC struct builtin listen_struct = {
 
 int accept_builtin(WORD_LIST *list)
 {
-    reset_internal_getopt();
-
-    int flags = 0;
-    for (int opt; (opt = internal_getopt(list, "NC")) != -1; ) {
-        switch (opt) {
-        case 'N':
-            flags |= SOCK_NONBLOCK;
-            break;
-
-        case 'C':
-            flags |= SOCK_CLOEXEC;
-            break;
-
-
-        CASE_HELPOPT;
-
-        default:
-            builtin_usage();
-            return (EX_USAGE);
-        }
-    }
-    list = loptend;
+    int flags = PARSE_FLAG(&list, "NC", SOCK_NONBLOCK, SOCK_CLOEXEC);
 
     const char *argv[2];
     if (to_argv(list, 2, argv) == -1)
@@ -1779,35 +1651,7 @@ int clone_fn(void *arg)
 }
 int clone_builtin(WORD_LIST *list)
 {
-    reset_internal_getopt();
-
-    int flags = 0;
-    for (int opt; (opt = internal_getopt(list, "FPVS")) != -1; ) {
-        switch (opt) {
-        case 'F':
-            flags |= CLONE_FILES;
-            break;
-
-        case 'P':
-            flags |= CLONE_PARENT;
-            break;
-
-        case 'V':
-            flags |= CLONE_VFORK;
-            break;
-
-        case 'S':
-            flags |= CLONE_SYSVSEM;
-            break;
-
-        CASE_HELPOPT;
-
-        default:
-            builtin_usage();
-            return (EX_USAGE);
-        }
-    }
-    list = loptend;
+    int flags = PARSE_FLAG(&list, "FPVS", CLONE_FILES, CLONE_PARENT, CLONE_VFORK, CLONE_SYSVSEM);
 
     const char *varname = NULL;
     if (to_argv_opt(list, 0, 1, &varname) == -1)
@@ -1856,27 +1700,7 @@ PUBLIC struct builtin clone_struct = {
 
 int unshare_builtin(WORD_LIST *list)
 {
-    reset_internal_getopt();
-
-    int flags = 0;
-    for (int opt; (opt = internal_getopt(list, "FPVS")) != -1; ) {
-        switch (opt) {
-        case 'F':
-            flags |= CLONE_FILES;
-            break;
-
-        case 'S':
-            flags |= CLONE_SYSVSEM;
-            break;
-
-        CASE_HELPOPT;
-
-        default:
-            builtin_usage();
-            return (EX_USAGE);
-        }
-    }
-    list = loptend;
+    int flags = PARSE_FLAG(&list, "FS", CLONE_FILES, CLONE_SYSVSEM);
 
     if (list != NULL) {
         builtin_usage();

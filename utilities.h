@@ -236,4 +236,39 @@ int readin_fd(WORD_LIST **list, int *fd)
     return 0;
 }
 
+/**
+ * @pre opts != NULL, flags != NULL
+ * @pre length of flags == strlen(opts)
+ * @pre 'h' not in opts
+ */
+int parse_flag(intmax_t *result, WORD_LIST **list, const char *opts, const intmax_t flags[])
+{
+    reset_internal_getopt();
+    for (int opt; (opt = internal_getopt(*list, (char*) opts)) != -1; ) {
+        char *opt_index = strchr(opts, opt);
+        if (opt_index != NULL)
+            *result |= flags[opt_index - opts];
+        else
+            switch (opt) {
+            CASE_HELPOPT;
+
+            default:
+                builtin_usage();
+                return (EX_USAGE);
+            }
+    }
+    *list = loptend;
+
+    return (EXECUTION_SUCCESS);
+}
+
+#define PARSE_FLAG(list, opts, ...) \
+    ({                              \
+        intmax_t result = 0;        \
+        int ret = parse_flag(&result, (list), (opts), (intmax_t[]){ __VA_ARGS__}); \
+        if (ret != EXECUTION_SUCCESS)\
+            return ret;             \
+        result;                     \
+    })
+
 #endif
