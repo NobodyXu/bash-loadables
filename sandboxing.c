@@ -28,7 +28,7 @@ PUBLIC int sandboxing_builtin_load(char *name)
 PUBLIC void sandboxing_builtin_unload(char *name)
 {}
 
-int enable_no_new_orivs_strict_builtin(WORD_LIST *list)
+int enable_no_new_privs_strict_builtin(WORD_LIST *list)
 {
     if (check_no_options(&list) == -1)
         return (EX_USAGE);
@@ -37,16 +37,16 @@ int enable_no_new_orivs_strict_builtin(WORD_LIST *list)
 
     return (EXECUTION_SUCCESS);
 }
-PUBLIC struct builtin enable_no_new_orivs_strict_struct = {
-    "enable_no_new_orivs_strict",             /* builtin name */
-    enable_no_new_orivs_strict_builtin,       /* function implementing the builtin */
+PUBLIC struct builtin enable_no_new_privs_strict_struct = {
+    "enable_no_new_privs_strict",             /* builtin name */
+    enable_no_new_privs_strict_builtin,       /* function implementing the builtin */
     BUILTIN_ENABLED,        /* initial flags for builtin */
     (char*[]){
         "After this function call, no new privileges is allowed for this process and its child process.",
         "It is also preserved accross execve and cannot be unset.",
         (char *)NULL
     },                      /* array of long documentation strings. */
-    "enable_no_new_orivs_strict_builtin",             /* usage synopsis; becomes short_doc */
+    "enable_no_new_privs_strict",             /* usage synopsis; becomes short_doc */
     0                       /* reserved for internal use */
 };
 
@@ -192,7 +192,7 @@ int sandboxing_builtin(WORD_LIST *_)
          */
         { .word = (char*) info.dli_fname, .flags = 0 },
 
-        { .word = "enable_no_new_orivs_strict", .flags = 0 },
+        { .word = "enable_no_new_privs_strict", .flags = 0 },
 
         { .word = "clone_ns", .flags = 0 },
         { .word = "unshare_ns", .flags = 0 },
