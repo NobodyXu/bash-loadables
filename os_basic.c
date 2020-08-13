@@ -2082,6 +2082,57 @@ PUBLIC struct builtin clone_struct = {
     0                             /* reserved for internal use */
 };
 
+int unshare_builtin(WORD_LIST *list)
+{
+    reset_internal_getopt();
+
+    int flags = 0;
+    for (int opt; (opt = internal_getopt(list, "FPVS")) != -1; ) {
+        switch (opt) {
+        case 'F':
+            flags |= CLONE_FILES;
+            break;
+
+        case 'S':
+            flags |= CLONE_SYSVSEM;
+            break;
+
+        CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
+    }
+    list = loptend;
+
+    if (list != NULL) {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    if (unshare(flags) == -1) {
+        warn("unshare failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin unshare_struct = {
+    "unshare",       /* builtin name */
+    unshare_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "unshare can undo what previous call to clone have done.",
+        "",
+        "If '-F' is passed, the child process unshares the fd table from the parent.",
+        "If '-S' is passed, the child process unshares System V semaphore adjustment values.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "unshare [-FS]",        /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
 int enable_all_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -2132,6 +2183,7 @@ int enable_all_builtin(WORD_LIST *_)
         { .word = "connect", .flags = 0 },
 
         { .word = "clone", .flags = 0 },
+        { .word = "unshare", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
