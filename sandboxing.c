@@ -148,6 +148,43 @@ PUBLIC struct builtin unshare_ns_struct = {
     0                             /* reserved for internal use */
 };
 
+int setns_builtin(WORD_LIST *list)
+{
+    int flags = PARSE_FLAG(&list, "CINMPuU", CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, \
+                                             CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS);
+
+    const char *argv[1];
+    if (to_argv(list, 1, argv) == -1)
+        return (EX_USAGE);
+
+    int fd;
+    if (str2fd(argv[0], &fd) == -1)
+        return (EX_USAGE);
+
+    if (setns(fd, flags) == -1) {
+        warn("setns failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin setns_struct = {
+    "setns",       /* builtin name */
+    setns_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "setns puts the process into namespace referred by fd.",
+        "fd may be opened read-only.",
+        "",
+        "Flags are optional. They can be used to check the type of namespace before enter into it.",
+        "",
+        "Check 'help clone_ns' for more information on how to use the flags.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "setns [-CINMPuU] <int> fd",        /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
 int chroot_builtin(WORD_LIST *list)
 {
     const char *path;
@@ -196,6 +233,7 @@ int sandboxing_builtin(WORD_LIST *_)
 
         { .word = "clone_ns", .flags = 0 },
         { .word = "unshare_ns", .flags = 0 },
+        { .word = "setns", .flags = 0 },
         { .word = "chroot", .flags = 0 },
     };
 
