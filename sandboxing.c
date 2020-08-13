@@ -56,51 +56,8 @@ int clone_ns_fn(void *arg)
 }
 int clone_ns_builtin(WORD_LIST *list)
 {
-    reset_internal_getopt();
-
-    int flags = 0;
-    for (int opt; (opt = internal_getopt(list, "VCINMPuU")) != -1; ) {
-        switch (opt) {
-        case 'V':
-            flags |= CLONE_VFORK;
-            break;
-
-        case 'C':
-            flags |= CLONE_NEWCGROUP;
-            break;
-
-        case 'I':
-            flags |= CLONE_NEWIPC;
-            break;
-
-        case 'N':
-            flags |= CLONE_NEWNET;
-            break;
-
-        case 'M':
-            flags |= CLONE_NEWNS;
-            break;
-
-        case 'P':
-            flags |= CLONE_NEWPID;
-            break;
-
-        case 'u':
-            flags |= CLONE_NEWUSER;
-            break;
-
-        case 'U':
-            flags |= CLONE_NEWUTS;
-            break;
-
-        CASE_HELPOPT;
-
-        default:
-            builtin_usage();
-            return (EX_USAGE);
-        }
-    }
-    list = loptend;
+    int flags = PARSE_FLAG(&list, "VCINMPuU", CLONE_VFORK, CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, \
+                                              CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS);
 
     const char *varname = NULL;
     if (to_argv_opt(list, 0, 1, &varname) == -1)
@@ -162,47 +119,8 @@ PUBLIC struct builtin clone_ns_struct = {
 
 int unshare_ns_builtin(WORD_LIST *list)
 {
-    reset_internal_getopt();
-
-    int flags = 0;
-    for (int opt; (opt = internal_getopt(list, "CINMPuU")) != -1; ) {
-        switch (opt) {
-        case 'C':
-            flags |= CLONE_NEWCGROUP;
-            break;
-
-        case 'I':
-            flags |= CLONE_NEWIPC;
-            break;
-
-        case 'N':
-            flags |= CLONE_NEWNET;
-            break;
-
-        case 'M':
-            flags |= CLONE_NEWNS;
-            break;
-
-        case 'P':
-            flags |= CLONE_NEWPID;
-            break;
-
-        case 'u':
-            flags |= CLONE_NEWUSER;
-            break;
-
-        case 'U':
-            flags |= CLONE_NEWUTS;
-            break;
-
-        CASE_HELPOPT;
-
-        default:
-            builtin_usage();
-            return (EX_USAGE);
-        }
-    }
-    list = loptend;
+    int flags = PARSE_FLAG(&list, "CINMPuU", CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, \
+                                             CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS);
 
     if (list != NULL) {
         builtin_usage();
