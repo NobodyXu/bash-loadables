@@ -63,3 +63,9 @@ After a builtin is enabled, type `help builtin` to get detailed help.
  - `unshare: unshare [-FS]`
  - `os_basic`
 
+### `sandboxing`
+
+ - `enable_no_new_privs_strict: enable_no_new_privs_strict`
+ - `clone_ns: clone_ns [-VCINMPuU] [var]`
+ - `unshare_ns: unshare_ns [-CINMPuU]`
+ - `chroot: chroot path`
