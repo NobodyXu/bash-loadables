@@ -8,6 +8,8 @@
 
 #include <sys/prctl.h>
 
+#include <sched.h>
+
 #include <dlfcn.h>
 
 /**
@@ -48,6 +50,116 @@ PUBLIC struct builtin enable_no_new_orivs_strict_struct = {
     0                       /* reserved for internal use */
 };
 
+int clone_ns_fn(void *arg)
+{
+    longjmp(*((jmp_buf*) arg), 1);
+}
+int clone_ns_builtin(WORD_LIST *list)
+{
+    reset_internal_getopt();
+
+    int flags = 0;
+    for (int opt; (opt = internal_getopt(list, "VCINMPuU")) != -1; ) {
+        switch (opt) {
+        case 'V':
+            flags |= CLONE_VFORK;
+            break;
+
+        case 'C':
+            flags |= CLONE_NEWCGROUP;
+            break;
+
+        case 'I':
+            flags |= CLONE_NEWIPC;
+            break;
+
+        case 'N':
+            flags |= CLONE_NEWNET;
+            break;
+
+        case 'M':
+            flags |= CLONE_NEWNS;
+            break;
+
+        case 'P':
+            flags |= CLONE_NEWPID;
+            break;
+
+        case 'u':
+            flags |= CLONE_NEWUSER;
+            break;
+
+        case 'U':
+            flags |= CLONE_NEWUTS;
+            break;
+
+        CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
+    }
+    list = loptend;
+
+    const char *varname = NULL;
+    if (to_argv_opt(list, 0, 1, &varname) == -1)
+        return (EX_USAGE);
+
+    int pid;
+    jmp_buf env;
+    if (setjmp(env) == 0) {
+        {
+            char stack[8064];
+            pid = clone(clone_ns_fn, stack, flags, &env);
+        }
+
+        if (pid == -1) {
+            warn("clone failed");
+            return (EXECUTION_FAILURE);
+        }
+    } else
+        pid = 0;
+
+    if (varname)
+        bind_var_to_int((char*) varname, pid);
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin clone_ns_struct = {
+    "clone_ns",       /* builtin name */
+    clone_ns_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "clone_ns creates a new process possibly in a new namespace",
+        "",
+        "If var is present, then the pid is writen to it in parent process, and",
+        "0 is writen to it in the child process.",
+        "",
+        "If '-V' is passed, this process is suspended until the child process calls execve or _exit.",
+        "If '-C' is passed, child process is put in a new cgroup.",
+        "If '-I' is passed, child process is put in a new IPC namespace.",
+        "If '-N' is passed, child process is put in a new network namespace.",
+        "If '-M' is passed, child process is put in a new mount namespace.",
+        "If '-P' is passed, child process is put in a new PID namespace.",
+        "If '-u' is passed, child process is put in a new user namespace.",
+        "If '-U' is passed, child process is put in a new UTS namespace.",
+        "",
+        "All namespaces except for user namespace requires CAP_SYSADMIN in the current user namespace.",
+        "",
+        "To create namespaces without privilege, you need to create user namespace along with the",
+        "actual namespace you want.",
+        "",
+        "NOTE that in order to create a user namespace, the euid and egid of the process",
+        "must be mapped in the parent user namespace AND the process mustn't in chroot env.",
+        "",
+        "Check manpage clone(2), namespace(7) and user_namespace(7) for more information.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "clone_ns [-VCINMPuU] [var]",        /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -68,6 +180,8 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = (char*) info.dli_fname, .flags = 0 },
 
         { .word = "enable_no_new_orivs_strict", .flags = 0 },
+
+        { .word = "clone_ns", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
