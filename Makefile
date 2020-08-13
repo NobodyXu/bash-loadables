@@ -26,6 +26,7 @@ CCFLAGS = $(DEFS) $(LOCAL_DEFS) $(LOCAL_CFLAGS) $(CFLAGS)
 LDFLAGS = -shared -Wl,-soname,$@ -Wl,-icf=all,--gc-sections -flto -Wl,--plugin-opt=O3
 
 INC := -Ibash -Ibash/lib -Ibash/builtins -Ibash/include -Ibash/example
+LIBS := -ldl
 
 SRCS := $(wildcard *.c)
 OUTS := $(SRCS:.c=)
@@ -37,7 +38,7 @@ bash/config.h: bash/configure
 
 %: %.c bash/config.h loadables.h.gch
 	$(MAKE) -C bash/
-	$(CC) -fPIC $(CCFLAGS) $(INC) $(LDFLAGS) -o $@ $<
+	$(CC) -fPIC $(CCFLAGS) $(INC) $(LIBS) $(LDFLAGS) -o $@ $<
 
 # Persudo recipe for vim linting
 %.h.gch: %.h
