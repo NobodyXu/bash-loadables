@@ -112,6 +112,8 @@ PUBLIC struct builtin clone_ns_struct = {
         "",
         "Regarding how to make certain path unreadable, check mount -o bind,[ro,noexec] path1 path2",
         "(path1 can be the same as path2).",
+        "To make certain path inaccessible, first create a dir in tmpfs, then ",
+        "mount -o bind,ro,noexec /path/to/dir/on/tmp /path/to/make/inaccessible and rmdir /path/to/dir/on/tmp.",
         "",
         "Check manpage clone(2), namespace(7) and user_namespace(7) for more information.",
         (char*) NULL
