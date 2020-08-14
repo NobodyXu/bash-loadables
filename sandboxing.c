@@ -110,6 +110,9 @@ PUBLIC struct builtin clone_ns_struct = {
         "NOTE that in order to create a user namespace, the euid and egid of the process",
         "must be mapped in the parent user namespace AND the process mustn't in chroot env.",
         "",
+        "Regarding how to make certain path unreadable, check mount -o bind,[ro,noexec] path1 path2",
+        "(path1 can be the same as path2).",
+        "",
         "Check manpage clone(2), namespace(7) and user_namespace(7) for more information.",
         (char*) NULL
     },                            /* array of long documentation strings. */
