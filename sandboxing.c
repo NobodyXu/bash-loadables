@@ -115,6 +115,9 @@ PUBLIC struct builtin clone_ns_struct = {
         "To make certain path inaccessible, first create a dir in tmpfs, then ",
         "mount -o bind,ro,noexec /path/to/dir/on/tmp /path/to/make/inaccessible and rmdir /path/to/dir/on/tmp.",
         "",
+        "It is also suggested that you remount /tmp, /dev/shm, /run, /var/tmp to ensure these path won't be ",
+        "tempered with from outside of the namespace.",
+        "",
         "Check manpage clone(2), namespace(7) and user_namespace(7) for more information.",
         (char*) NULL
     },                            /* array of long documentation strings. */
