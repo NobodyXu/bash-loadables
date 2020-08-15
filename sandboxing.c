@@ -4,10 +4,13 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 #include <errno.h>
 
 #include <sys/prctl.h>
 #include <linux/securebits.h>
+
+#include <sys/mount.h>
 
 #include <sched.h>
 
@@ -267,6 +270,85 @@ PUBLIC struct builtin chroot_struct = {
     0                             /* reserved for internal use */
 };
 
+int bind_mount_builtin(WORD_LIST *list)
+{
+    unsigned long flags = 0;
+    unsigned long recursive = 0;
+
+    reset_internal_getopt();
+    for (int opt; (opt = internal_getopt(list, "o:R")) != -1; ) {
+        switch (opt) {
+        case 'o':
+            {
+                const char *options = list_optarg;
+                for (size_t i = 0; options[0] != '\0'; ++i) {
+                    const char *opt_end = strchrnul(options, ',');
+
+                    size_t opt_len = opt_end - options;
+                    if (strncasecmp(options, "RDONLY", opt_len) == 0)
+                        flags |= MS_RDONLY;
+                    else if (strncasecmp(options, "NOEXEC", opt_len) == 0)
+                        flags |= MS_NOEXEC;
+                    else if (strncasecmp(options, "NOSUID", opt_len) == 0)
+                        flags |= MS_NOSUID;
+                    else {
+                        warnx("bind_mount: Invalid option[%zu] provided", i);
+                        return (EX_USAGE);
+                    }
+
+                    if (opt_end[0] == '\0')
+                        break;
+                    else
+                        options = opt_end + 1;
+                }
+            }
+            break;
+
+        case 'R':
+            recursive = -1;
+
+        CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
+    }
+    list = loptend;
+
+    const char *paths[2];
+    if (to_argv(list, 2, paths) == -1)
+        return (EX_USAGE);
+
+    const unsigned long bind_mount_flag = MS_BIND | (recursive & MS_REC);
+    if (mount(paths[0], paths[1], NULL, bind_mount_flag, NULL) == -1) {
+        warn("bind_mount: 1st mount (bind mount only) failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    if (mount(NULL, paths[1], NULL, flags | MS_REMOUNT | bind_mount_flag, NULL) == -1) {
+        warn("bind_mount: 2st mount (apply options) failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin bind_mount_struct = {
+    "bind_mount",       /* builtin name */
+    bind_mount_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "bind_mount binds src to dest, which can be configured as combination of rdonly, noexec or nosuid",
+        "by '-o ...' flag.",
+        "",
+        "If '-R' is specified and src is a dir, then bind mount is performed recursively:",
+        "    all submounts under src is also bind mounted.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "bind_mount [-R] [-o rdonly,noexec,nosuid] src dest",        /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -293,6 +375,8 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "unshare_ns", .flags = 0 },
         { .word = "setns", .flags = 0 },
         { .word = "chroot", .flags = 0 },
+
+        { .word = "bind_mount", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
