@@ -7,6 +7,7 @@
 #include <errno.h>
 
 #include <sys/prctl.h>
+#include <linux/securebits.h>
 
 #include <sched.h>
 
@@ -47,6 +48,51 @@ PUBLIC struct builtin enable_no_new_privs_strict_struct = {
         (char *)NULL
     },                      /* array of long documentation strings. */
     "enable_no_new_privs_strict",             /* usage synopsis; becomes short_doc */
+    0                       /* reserved for internal use */
+};
+
+int set_securebits_builtin(WORD_LIST *list)
+{
+    int locked = PARSE_FLAG(&list, "L", -1);
+
+    unsigned long flags = 0;
+    for (int i = 1; list != NULL; list = list->next, ++i) {
+        if (strcasecmp(list->word->word, "KEEP_CAPS") == 0)
+            flags |= SECBIT_KEEP_CAPS | (locked & SECBIT_KEEP_CAPS_LOCKED);
+        else if (strcasecmp(list->word->word, "NO_SETUID_FIXUP") == 0)
+            flags |= SECBIT_NO_SETUID_FIXUP | (locked & SECBIT_NO_SETUID_FIXUP_LOCKED);
+        else if (strcasecmp(list->word->word, "NOROOT") == 0)
+            flags |= SECBIT_NOROOT | (locked & SECBIT_NOROOT_LOCKED);
+        else if (strcasecmp(list->word->word, "NO_CAP_AMBIENT_RAISE") == 0)
+            flags |= SECBIT_NO_CAP_AMBIENT_RAISE | (locked & SECBIT_NO_CAP_AMBIENT_RAISE_LOCKED);
+        else {
+            warnx("Invalid argv[%d]", i);
+            return (EX_USAGE);
+        }
+    }
+
+    if (prctl(PR_SET_SECUREBITS, flags, 0, 0, 0) == -1) {
+        warn("set_securebits: prctl failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin set_securebits_struct = {
+    "set_securebits",             /* builtin name */
+    set_securebits_builtin,       /* function implementing the builtin */
+    BUILTIN_ENABLED,        /* initial flags for builtin */
+    (char*[]){
+        "set_securebits set secure bits specified as arguments (which is case insensitive).",
+        "",
+        "If '-L' is passed, then the specified secure bits are also locked.",
+        "",
+        "Example usage: set_securebits -L KEEP_CAPS NO_SETUID_FIXUP NOROOT NO_CAP_AMBIENT_RAISE",
+        "",
+        "For more detail on secure bits, check man capabilities(7).",
+        (char *)NULL
+    },                      /* array of long documentation strings. */
+    "set_securebits [-L] [KEEP_CAPS/NO_SETUID_FIXUP/NOROOT/NO_CAP_AMBIENT_RAISE]...",
     0                       /* reserved for internal use */
 };
 
@@ -221,36 +267,6 @@ PUBLIC struct builtin chroot_struct = {
     0                             /* reserved for internal use */
 };
 
-/**
- *       SECBIT_NO_SETUID_FIXUP
-              Setting this flag stops the kernel from adjusting the process's permitted, effective, and ambient capability sets when the thread's effective and filesystem UIDs are switched between zero and nonzero values.  (See the subsection Effect of user ID changes on capabilities.)
-
- 
- *       SECBIT_NOROOT
-              If this bit is set, then the kernel does not grant capabilities when a set-user-ID-root program is executed, or when a process with an effective or real UID of 0 calls execve(2).  (See the subsection Capabilities and execution of programs by root.)
-
-       SECBIT_NO_CAP_AMBIENT_RAISE
-              Setting this flag disallows raising ambient capabilities via the prctl(2) PR_CAP_AMBIENT_RAISE operation.
-
-
-       Each of the above "base" flags has a companion "locked" flag.  Setting any of the "locked" flags is irreversible, and has the effect of preventing further changes to the corresponding "base" flag.  The locked flags are: SECBIT_KEEP_CAPS_LOCKED, SECBIT_NO_SETUID_FIXUP_LOCKED, SECBIT_NOROOT_LOCKED, and SECBIT_NO_CAP_AMBIENT_RAISE_LOCKED.
-
-
-       The securebits flags can be modified and retrieved using the prctl(2) PR_SET_SECUREBITS and PR_GET_SECUREBITS operations.  The CAP_SETPCAP capability is required to modify the flags.  Note that the SECBIT_* constants are available only after including the <linux/securebits.h> header file.
-
-
-       The securebits flags are inherited by child processes.  During an execve(2), all of the flags are preserved, except SECBIT_KEEP_CAPS which is always cleared.
-
-
-           prctl(PR_SET_SECUREBITS,
-                   SECBIT_KEEP_CAPS_LOCKED |
-                   SECBIT_NO_SETUID_FIXUP |
-                   SECBIT_NO_SETUID_FIXUP_LOCKED |
-                   SECBIT_NOROOT |
-                   SECBIT_NOROOT_LOCKED);
-
- */
-
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -271,6 +287,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = (char*) info.dli_fname, .flags = 0 },
 
         { .word = "enable_no_new_privs_strict", .flags = 0 },
+        { .word = "set_securebits", .flags = 0 },
 
         { .word = "clone_ns", .flags = 0 },
         { .word = "unshare_ns", .flags = 0 },
