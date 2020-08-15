@@ -22,6 +22,7 @@
 
 #include <sys/mman.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
 
@@ -1662,7 +1663,7 @@ int clone_builtin(WORD_LIST *list)
     if (setjmp(env) == 0) {
         {
             char stack[8064];
-            pid = clone(clone_fn, stack, flags, &env);
+            pid = clone(clone_fn, stack, flags | SIGCHLD, &env);
         }
 
         if (pid == -1) {
