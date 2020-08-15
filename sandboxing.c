@@ -56,8 +56,9 @@ int clone_ns_fn(void *arg)
 }
 int clone_ns_builtin(WORD_LIST *list)
 {
-    int flags = PARSE_FLAG(&list, "VCINMPuU", CLONE_VFORK, CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, \
-                                              CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS);
+    int flags = PARSE_FLAG(&list, "VPCINMpuU", CLONE_VFORK, CLONE_PARENT, CLONE_NEWCGROUP, CLONE_NEWIPC, \
+                                               CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, \
+                                               CLONE_NEWUTS);
 
     const char *varname = NULL;
     if (to_argv_opt(list, 0, 1, &varname) == -1)
