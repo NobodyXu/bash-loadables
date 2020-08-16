@@ -70,6 +70,7 @@ After a builtin is enabled, type `help builtin` to get detailed help.
  - `unshare_ns: unshare_ns [-CINMPuU]`
  - `chroot: chroot path`
  - `setns: setns [-CINMPuU] <int> fd`
+ - `sandboxing`
 
 ### `common_commands`
 
