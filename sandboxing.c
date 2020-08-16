@@ -622,7 +622,7 @@ int sandboxing_builtin(WORD_LIST *_)
 
         { .word = "bind_mount", .flags = 0 },
         { .word = "make_inaccessible", .flags = 0 },
-        { .word = "make_accessible", .flags = 0 },
+        { .word = "make_accessible_under", .flags = 0 },
         { .word = "mount_pseudo", .flags = 0 },
     };
 
