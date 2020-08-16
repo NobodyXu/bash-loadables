@@ -408,24 +408,24 @@ PUBLIC struct builtin make_inaccessible_struct = {
     0                             /* reserved for internal use */
 };
 
-int mount_tmpfs_builtin(WORD_LIST *list)
+int mount_pseudo_builtin(WORD_LIST *list)
 {
     const char *data = NULL;
     unsigned long flags = 0;
 
     reset_internal_getopt();
-    for (int opt; (opt = internal_getopt(list, "O:o:")) != -1; ) {
+    for (int opt; (opt = internal_getopt(list, "O:o:t:")) != -1; ) {
         switch (opt) {
         case 'O':
             if (data != NULL) {
-                warnx("mount_tmpfs: '-o' option is specified at least twice");
+                warnx("mount_pseudo: '-o' option is specified at least twice");
                 return (EX_USAGE);
             } else
                 data = list_optarg;
             break;
 
         case 'o':
-            if (parse_mount_options(list_optarg, &flags, "mount_tmpfs") == -1)
+            if (parse_mount_options(list_optarg, &flags, "mount_pseudo") == -1)
                 return (EX_USAGE);
             break;
 
@@ -438,31 +438,31 @@ int mount_tmpfs_builtin(WORD_LIST *list)
     }
     list = loptend;
 
-    const char *path;
-    if (to_argv(list, 1, &path) == -1)
+    const char *argv[2];
+    if (to_argv(list, 2, argv) == -1)
         return (EX_USAGE);
 
-    if (mount("tmpfs", path, "tmpfs", flags, data) == -1) {
-        warn("mount_tmpfs: mount failed");
+    if (mount(argv[0], argv[1], argv[0], flags, data) == -1) {
+        warn("mount_pseudo: mount failed");
         return (EXECUTION_FAILURE);
     }
 
     return (EXECUTION_SUCCESS);
 }
-PUBLIC struct builtin mount_tmpfs_struct = {
-    "mount_tmpfs",       /* builtin name */
-    mount_tmpfs_builtin, /* function implementing the builtin */
+PUBLIC struct builtin mount_pseudo_struct = {
+    "mount_pseudo",       /* builtin name */
+    mount_pseudo_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
         "mount_tmpfs mount tmpfs to path.",
         "",
         "If you want to place block or character file in tmpfs, you must provide '-O mode=0755'.",
         "",
-        "For possible options to be passed in via '-O', check",
-        "    https://man7.org/linux/man-pages/man5/tmpfs.5.html",
+        "For possible options to be passed in via '-O', check manpage of the persudo_filesystem_type.",
+        "",
         (char*) NULL
     },                            /* array of long documentation strings. */
-    "mount_tmpfs [-o rdonly,noexec,nosuid,nodev] [-O options,...] path",
+    "mount_pseudo [-o rdonly,noexec,nosuid,nodev] [-O options,...] persudo_filesystem_type path",
     0                             /* reserved for internal use */
 };
 
@@ -495,7 +495,7 @@ int sandboxing_builtin(WORD_LIST *_)
 
         { .word = "bind_mount", .flags = 0 },
         { .word = "make_inaccessible", .flags = 0 },
-        { .word = "mount_tmpfs", .flags = 0 },
+        { .word = "mount_pseudo", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
