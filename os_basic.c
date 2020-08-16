@@ -1801,7 +1801,7 @@ PUBLIC struct builtin os_basic_struct = {
     os_basic_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
-        "enable all enables all builtin defined in this file.",
+        "enables all builtin defined in this file.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "os_basic",                 /* usage synopsis; becomes short_doc */
