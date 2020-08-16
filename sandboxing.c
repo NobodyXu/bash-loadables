@@ -456,6 +456,8 @@ PUBLIC struct builtin mount_tmpfs_struct = {
     (char*[]){
         "mount_tmpfs mount tmpfs to path.",
         "",
+        "If you want to place block or character file in tmpfs, you must provide '-O mode=0755'.",
+        "",
         "For possible options to be passed in via '-O', check",
         "    https://man7.org/linux/man-pages/man5/tmpfs.5.html",
         (char*) NULL
