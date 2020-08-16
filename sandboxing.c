@@ -291,6 +291,8 @@ int bind_mount_builtin(WORD_LIST *list)
                         flags |= MS_NOEXEC;
                     else if (strncasecmp(options, "NOSUID", opt_len) == 0)
                         flags |= MS_NOSUID;
+                    else if (strncasecmp(options, "NODEV", opt_len) == 0)
+                        flags |= MS_NODEV;
                     else {
                         warnx("bind_mount: Invalid option[%zu] provided", i);
                         return (EX_USAGE);
@@ -345,7 +347,7 @@ PUBLIC struct builtin bind_mount_struct = {
         "    all submounts under src is also bind mounted.",
         (char*) NULL
     },                            /* array of long documentation strings. */
-    "bind_mount [-R] [-o rdonly,noexec,nosuid] src dest",        /* usage synopsis; becomes short_doc */
+    "bind_mount [-R] [-o rdonly,noexec,nosuid,nodev] src dest",        /* usage synopsis; becomes short_doc */
     0                             /* reserved for internal use */
 };
 
