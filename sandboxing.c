@@ -173,7 +173,7 @@ PUBLIC struct builtin clone_ns_struct = {
         "Check manpage clone(2), namespace(7) and user_namespace(7) for more information.",
         (char*) NULL
     },                            /* array of long documentation strings. */
-    "clone_ns [-VCINMPuU] [var]",        /* usage synopsis; becomes short_doc */
+    "clone_ns [-VPCINMpuU] [var]",        /* usage synopsis; becomes short_doc */
     0                             /* reserved for internal use */
 };
 
