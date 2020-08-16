@@ -162,6 +162,8 @@ PUBLIC struct builtin clone_ns_struct = {
         "NOTE that in order to create a user namespace, the euid and egid of the process",
         "must be mapped in the parent user namespace AND the process mustn't in chroot env.",
         "",
+        "After user namespace is created, you would need to set uid_map, setgroups and gid_map.",
+        "",
         "To make certain path rdonly/noexec/nosuid/nodev, use bind_mount",
         "To make certain path inaccessible, use make_inaccessible",
         "",
