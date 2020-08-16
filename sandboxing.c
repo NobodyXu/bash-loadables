@@ -336,6 +336,7 @@ int bind_mount_builtin(WORD_LIST *list)
 
         case 'R':
             recursive = -1;
+            break;
 
         CASE_HELPOPT;
 
