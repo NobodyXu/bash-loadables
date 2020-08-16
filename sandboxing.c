@@ -346,6 +346,8 @@ PUBLIC struct builtin bind_mount_struct = {
         "",
         "If '-R' is specified and src is a dir, then bind mount is performed recursively:",
         "    all submounts under src is also bind mounted.",
+        "",
+        "src and dest can be the same path.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "bind_mount [-R] [-o rdonly,noexec,nosuid,nodev] src dest",        /* usage synopsis; becomes short_doc */
