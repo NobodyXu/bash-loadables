@@ -321,21 +321,18 @@ int parse_mount_options(const char *options, unsigned long *flags, const char *f
 
     return 0;
 }
-int bind_mount_builtin(WORD_LIST *list)
+int bind_mount_getopt(WORD_LIST **list, unsigned long *flags, unsigned long *recursive, const char *fname)
 {
-    unsigned long flags = 0;
-    unsigned long recursive = 0;
-
     reset_internal_getopt();
-    for (int opt; (opt = internal_getopt(list, "o:R")) != -1; ) {
+    for (int opt; (opt = internal_getopt(*list, "o:R")) != -1; ) {
         switch (opt) {
         case 'o':
-            if (parse_mount_options(list_optarg, &flags, "bind_mount") == -1)
+            if (parse_mount_options(list_optarg, flags, fname) == -1)
                 return (EX_USAGE);
             break;
 
         case 'R':
-            recursive = -1;
+            *recursive = -1;
             break;
 
         CASE_HELPOPT;
@@ -345,7 +342,18 @@ int bind_mount_builtin(WORD_LIST *list)
             return (EX_USAGE);
         }
     }
-    list = loptend;
+    *list = loptend;
+
+    return (EXECUTION_SUCCESS);
+}
+int bind_mount_builtin(WORD_LIST *list)
+{
+    unsigned long flags = 0;
+    unsigned long recursive = 0;
+
+    int result = bind_mount_getopt(&list, &flags, &recursive, "bind_mount");
+    if (result != EXECUTION_SUCCESS)
+        return result;
 
     const char *paths[2];
     if (to_argv(list, 2, paths) == -1)
