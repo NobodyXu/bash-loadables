@@ -164,7 +164,7 @@ PUBLIC struct builtin clone_ns_struct = {
         "To make certain path inaccessible, use make_inaccessible",
         "",
         "It is suggested that you remount /boot, /efi, /etc, /usr, /bin, /sbin, /lib, /lib64, /home, /root, ",
-        "/sys, /dev to be read-only or inaccessible and remount /proc",
+        "/sys, /dev to be read-only or (partially) inaccessible and remount /proc",
         "It is also suggested that you remount /tmp, /dev/shm, /run, /var/tmp to ensure these path won't be ",
         "tempered with from outside of the namespace.",
         "",
