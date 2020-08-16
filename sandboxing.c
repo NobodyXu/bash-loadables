@@ -290,6 +290,33 @@ int bind_mount(const char *src, const char *dest, unsigned long flags, unsigned 
 
     return (EXECUTION_SUCCESS);
 }
+int parse_mount_options(const char *options, unsigned long *flags, const char *fname)
+{
+    for (size_t i = 0; options[0] != '\0'; ++i) {
+        const char *opt_end = strchrnul(options, ',');
+
+        size_t opt_len = opt_end - options;
+        if (strncasecmp(options, "RDONLY", opt_len) == 0)
+            *flags |= MS_RDONLY;
+        else if (strncasecmp(options, "NOEXEC", opt_len) == 0)
+            *flags |= MS_NOEXEC;
+        else if (strncasecmp(options, "NOSUID", opt_len) == 0)
+            *flags |= MS_NOSUID;
+        else if (strncasecmp(options, "NODEV", opt_len) == 0)
+            *flags |= MS_NODEV;
+        else {
+            warnx("%s: Invalid option[%zu] provided", fname, i);
+            return -1;
+        }
+
+        if (opt_end[0] == '\0')
+            break;
+        else
+            options = opt_end + 1;
+    }
+
+    return 0;
+}
 int bind_mount_builtin(WORD_LIST *list)
 {
     unsigned long flags = 0;
@@ -299,31 +326,8 @@ int bind_mount_builtin(WORD_LIST *list)
     for (int opt; (opt = internal_getopt(list, "o:R")) != -1; ) {
         switch (opt) {
         case 'o':
-            {
-                const char *options = list_optarg;
-                for (size_t i = 0; options[0] != '\0'; ++i) {
-                    const char *opt_end = strchrnul(options, ',');
-
-                    size_t opt_len = opt_end - options;
-                    if (strncasecmp(options, "RDONLY", opt_len) == 0)
-                        flags |= MS_RDONLY;
-                    else if (strncasecmp(options, "NOEXEC", opt_len) == 0)
-                        flags |= MS_NOEXEC;
-                    else if (strncasecmp(options, "NOSUID", opt_len) == 0)
-                        flags |= MS_NOSUID;
-                    else if (strncasecmp(options, "NODEV", opt_len) == 0)
-                        flags |= MS_NODEV;
-                    else {
-                        warnx("bind_mount: Invalid option[%zu] provided", i);
-                        return (EX_USAGE);
-                    }
-
-                    if (opt_end[0] == '\0')
-                        break;
-                    else
-                        options = opt_end + 1;
-                }
-            }
+            if (parse_mount_options(list_optarg, &flags, "bind_mount") == -1)
+                return (EX_USAGE);
             break;
 
         case 'R':
