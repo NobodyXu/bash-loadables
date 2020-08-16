@@ -161,6 +161,7 @@ PUBLIC struct builtin clone_ns_struct = {
         "must be mapped in the parent user namespace AND the process mustn't in chroot env.",
         "",
         "To make certain path rdonly/noexec/nosuid/nodev, use bind_mount",
+        "To make certain path inaccessible, use make_inaccessible",
         "",
         "To make certain path inaccessible, first create a dir in tmpfs, then ",
         "bind_mount -o rdonly,noexec /path/to/dir/on/tmp /path/to/make/inaccessible and ",
