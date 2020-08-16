@@ -177,7 +177,7 @@ PUBLIC struct builtin clone_ns_struct = {
 
 int unshare_ns_builtin(WORD_LIST *list)
 {
-    int flags = PARSE_FLAG(&list, "CINMPuU", CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, \
+    int flags = PARSE_FLAG(&list, "CINMpuU", CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, \
                                              CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS);
 
     if (list != NULL) {
@@ -202,7 +202,7 @@ PUBLIC struct builtin unshare_ns_struct = {
         "Check 'help clone_ns' for more information on how to use this function.",
         (char*) NULL
     },                            /* array of long documentation strings. */
-    "unshare_ns [-CINMPuU]",        /* usage synopsis; becomes short_doc */
+    "unshare_ns [-CINMpuU]",        /* usage synopsis; becomes short_doc */
     0                             /* reserved for internal use */
 };
 
