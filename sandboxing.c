@@ -271,6 +271,26 @@ PUBLIC struct builtin chroot_struct = {
     0                             /* reserved for internal use */
 };
 
+/**
+ * @flags should contain flags other than MS_REMOUNT, MS_BIND and MS_REC.
+ */
+int bind_mount(const char *src, const char *dest, unsigned long flags, unsigned long recursive, 
+               const char *fname)
+{
+    const unsigned long bind_mount_flag = MS_BIND | (recursive & MS_REC);
+    if (mount(src, dest, NULL, bind_mount_flag, NULL) == -1) {
+        warn("%s: bind_mount: 1st mount (bind mount only) of src = %s, dest = %s failed", 
+             fname, src, dest);
+        return (EXECUTION_FAILURE);
+    }
+
+    if (mount(NULL, dest, NULL, flags | MS_REMOUNT | bind_mount_flag, NULL) == -1) {
+        warn("%s: bind_mount: 2st mount (apply options) of %s failed", fname, dest);
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
 int bind_mount_builtin(WORD_LIST *list)
 {
     unsigned long flags = 0;
@@ -323,18 +343,7 @@ int bind_mount_builtin(WORD_LIST *list)
     if (to_argv(list, 2, paths) == -1)
         return (EX_USAGE);
 
-    const unsigned long bind_mount_flag = MS_BIND | (recursive & MS_REC);
-    if (mount(paths[0], paths[1], NULL, bind_mount_flag, NULL) == -1) {
-        warn("bind_mount: 1st mount (bind mount only) failed");
-        return (EXECUTION_FAILURE);
-    }
-
-    if (mount(NULL, paths[1], NULL, flags | MS_REMOUNT | bind_mount_flag, NULL) == -1) {
-        warn("bind_mount: 2st mount (apply options) failed");
-        return (EXECUTION_FAILURE);
-    }
-
-    return (EXECUTION_SUCCESS);
+    return bind_mount(paths[0], paths[1], flags, recursive, "bind_mount");
 }
 PUBLIC struct builtin bind_mount_struct = {
     "bind_mount",       /* builtin name */
@@ -351,6 +360,47 @@ PUBLIC struct builtin bind_mount_struct = {
         (char*) NULL
     },                            /* array of long documentation strings. */
     "bind_mount [-R] [-o rdonly,noexec,nosuid,nodev] src dest",        /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
+int make_inaccessible_builtin(WORD_LIST *list)
+{
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    char tmp_path[] = "/tmp/sandboxing_make_inaccessible_builtinXXXXXX";
+    if (mkdtemp(tmp_path) == NULL) {
+        warn("make_inaccessible: mkdtemp failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    const unsigned long flags = MS_RDONLY | MS_NOEXEC | MS_NOSUID | MS_NODEV;
+    for (; list != NULL; list = list->next) {
+        if (bind_mount(tmp_path, list->word->word, flags, 0, "make_inaccessible") != EXECUTION_SUCCESS)
+            return (EXECUTION_FAILURE);
+    }
+
+    if (rmdir(tmp_path) == -1) {
+        warn("make_inaccessible: rmdir failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin make_inaccessible_struct = {
+    "make_inaccessible",       /* builtin name */
+    make_inaccessible_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "make_inaccessible make paths... inaccessible.",
+        "",
+        "It must be invoked after a private tmp is mounted and before any new processes",
+        "is created in this mount namespace.",
+        "",
+        "make_inaccessible is implemented using bind mount.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "make_inaccessible paths...",        /* usage synopsis; becomes short_doc */
     0                             /* reserved for internal use */
 };
 
@@ -382,6 +432,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "chroot", .flags = 0 },
 
         { .word = "bind_mount", .flags = 0 },
+        { .word = "make_inaccessible", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
