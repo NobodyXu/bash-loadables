@@ -370,6 +370,16 @@ PUBLIC struct builtin bind_mount_struct = {
     0                             /* reserved for internal use */
 };
 
+int make_inaccessible_builtin_impl(WORD_LIST *list, const char *tmp_path)
+{
+    const unsigned long flags = MS_RDONLY | MS_NOEXEC | MS_NOSUID | MS_NODEV;
+    for (; list != NULL; list = list->next) {
+        if (bind_mount(tmp_path, list->word->word, flags, 0, "make_inaccessible") != EXECUTION_SUCCESS)
+            return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
 int make_inaccessible_builtin(WORD_LIST *list)
 {
     if (check_no_options(&list) == -1)
@@ -381,18 +391,14 @@ int make_inaccessible_builtin(WORD_LIST *list)
         return (EXECUTION_FAILURE);
     }
 
-    const unsigned long flags = MS_RDONLY | MS_NOEXEC | MS_NOSUID | MS_NODEV;
-    for (; list != NULL; list = list->next) {
-        if (bind_mount(tmp_path, list->word->word, flags, 0, "make_inaccessible") != EXECUTION_SUCCESS)
-            return (EXECUTION_FAILURE);
-    }
+    int result = make_inaccessible_builtin_impl(list, tmp_path);
 
     if (rmdir(tmp_path) == -1) {
         warn("make_inaccessible: rmdir failed");
         return (EXECUTION_FAILURE);
     }
 
-    return (EXECUTION_SUCCESS);
+    return result;
 }
 PUBLIC struct builtin make_inaccessible_struct = {
     "make_inaccessible",       /* builtin name */
