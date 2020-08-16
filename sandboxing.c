@@ -2,19 +2,21 @@
 
 #include "utilities.h"
 
-#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 
-#include <sys/prctl.h>
-#include <linux/securebits.h>
+#include <unistd.h>
 
 #include <sys/mount.h>
+#include <sys/prctl.h>
+
+#include <linux/securebits.h>
 
 #include <sched.h>
 
 #include <dlfcn.h>
+
+#include <errno.h>
 
 /**
  * Called when `sandboxing' is enabled and loaded from the shared object.
@@ -427,6 +429,112 @@ PUBLIC struct builtin make_inaccessible_struct = {
     0                             /* reserved for internal use */
 };
 
+/**
+ * @param tmp_path should be null-terminated string and allocated on heap.
+ * @param tmp_len include the trailing null byte.
+ */
+int make_accessible_under_builtin_impl(WORD_LIST *list, const char *dest, char **tmp_path, size_t tmp_len,
+                                       unsigned long flags, unsigned long recursive)
+{
+    const char *self_name = "make_accessible_under";
+    size_t buf_len = tmp_len;
+
+    for (size_t i = 1; list != NULL; list = list->next, ++i) {
+        char *bind_name = basename(list->word->word);
+        if (strcmp(bind_name, "/") == 0) {
+            warnx("%s: the %zu path points to %s", self_name, i, "/");
+            return (EX_USAGE);
+        } else if (strcmp(bind_name, ".") == 0) {
+            warnx("%s: the %zu path points to %s", self_name, i, ".");
+            return (EX_USAGE);
+        }
+        size_t bind_len = strlen(bind_name);
+
+        if (buf_len < tmp_len + 1 + bind_len) {
+            void *p = realloc(*tmp_path, tmp_len + 1 + bind_len);
+            if (p == NULL) {
+                warn("%s: realloc failed", self_name);
+                return (EXECUTION_FAILURE);
+            }
+            buf_len = tmp_len + 1 + bind_len;
+            *tmp_path = p;
+        }
+        (*tmp_path)[tmp_len - 1] = '/';
+        strncpy(*tmp_path + tmp_len, bind_name, bind_len + 1);
+        (*tmp_path + tmp_len)[bind_len] = '\0';
+
+        if (bind_mount(list->word->word, *tmp_path, flags, recursive, self_name) != EXECUTION_SUCCESS)
+            return (EXECUTION_FAILURE);
+    }
+
+    (*tmp_path)[tmp_len - 1] = '\0';
+    return bind_mount(*tmp_path, dest, 0, 1, self_name);
+}
+int make_accessible_under_builtin(WORD_LIST *list)
+{
+    unsigned long flags = 0;
+    unsigned long recursive = 0;
+
+    const char *self_name = "make_accessible_under";
+
+    int result = bind_mount_getopt(&list, &flags, &recursive, self_name);
+    if (result != EXECUTION_SUCCESS)
+        return result;
+
+    const char *dest;
+    if (readin_args(&list, 1, &dest) != 1 || list == NULL) {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    const char template_path[] = "/tmp/sandboxing_make_accessible_under_builtinXXXXXX";
+
+    char *tmp_path = (strdup)(template_path);
+    if (tmp_path == NULL) {
+        warn("%s: strdup failed", self_name);
+        return (EXECUTION_FAILURE);
+    }
+    if (mkdtemp(tmp_path) == NULL) {
+        warn("%s: mkdtemp failed", self_name);
+        return (EXECUTION_FAILURE);
+    }
+
+    result = make_accessible_under_builtin_impl(list, dest, &tmp_path, sizeof(template_path), flags, recursive);
+    tmp_path[sizeof(template_path) - 1] = '\0';
+
+    if (rmdir(tmp_path) == -1) {
+        warn("%s: rmdir failed", self_name);
+        result = (EXECUTION_FAILURE);
+    }
+
+    (free)(tmp_path);
+
+    return result;
+}
+PUBLIC struct builtin make_accessible_under_struct = {
+    "make_accessible_under",       /* builtin name */
+    make_accessible_under_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "make_accessible_under make /path/to/be/accessed/... accessible in dest",
+        "",
+        "/path/to/be/accessed can be subdir or files in dest in absolute path.",
+        "If /path/to/be/accessed is a symlink, if won't get dereferenced.",
+        "/path/to/be/accessed must not be '/'",
+        "",
+        "The resulting dest dir itself will be read-only.",
+        "",
+        "It should be invoked after a private tmp is mounted and before any new processes",
+        "is created in this mount namespace, since it creates a tmp dir internally.",
+        "OTHERWISE it is hard to ensure nobody else is TEMPERING with the tmp dir.",
+        "",
+        "make_accessible_under is implemented using bind mount.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "make_accessible_under [-R] [-o rdonly,noexec,nosuid,nodev] dest /path/to/be/accessed/ ...",
+    0                             /* reserved for internal use */
+};
+
 int mount_pseudo_builtin(WORD_LIST *list)
 {
     const char *data = NULL;
@@ -514,6 +622,7 @@ int sandboxing_builtin(WORD_LIST *_)
 
         { .word = "bind_mount", .flags = 0 },
         { .word = "make_inaccessible", .flags = 0 },
+        { .word = "make_accessible", .flags = 0 },
         { .word = "mount_pseudo", .flags = 0 },
     };
 
