@@ -408,6 +408,62 @@ PUBLIC struct builtin make_inaccessible_struct = {
     0                             /* reserved for internal use */
 };
 
+int mount_tmpfs_builtin(WORD_LIST *list)
+{
+    const char *data = NULL;
+    unsigned long flags = 0;
+
+    reset_internal_getopt();
+    for (int opt; (opt = internal_getopt(list, "O:o:")) != -1; ) {
+        switch (opt) {
+        case 'O':
+            if (data != NULL) {
+                warnx("mount_tmpfs: '-o' option is specified at least twice");
+                return (EX_USAGE);
+            } else
+                data = list_optarg;
+            break;
+
+        case 'o':
+            if (parse_mount_options(list_optarg, &flags, "mount_tmpfs") == -1)
+                return (EX_USAGE);
+            break;
+
+        CASE_HELPOPT;
+
+        default:
+            builtin_usage();
+            return (EX_USAGE);
+        }
+    }
+    list = loptend;
+
+    const char *path;
+    if (to_argv(list, 1, &path) == -1)
+        return (EX_USAGE);
+
+    if (mount("tmpfs", path, "tmpfs", flags, data) == -1) {
+        warn("mount_tmpfs: mount failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin mount_tmpfs_struct = {
+    "mount_tmpfs",       /* builtin name */
+    mount_tmpfs_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "mount_tmpfs mount tmpfs to path.",
+        "",
+        "For possible options to be passed in via '-O', check",
+        "    https://man7.org/linux/man-pages/man5/tmpfs.5.html",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "mount_tmpfs [-o rdonly,noexec,nosuid,nodev] [-O options,...] path",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -437,6 +493,7 @@ int sandboxing_builtin(WORD_LIST *_)
 
         { .word = "bind_mount", .flags = 0 },
         { .word = "make_inaccessible", .flags = 0 },
+        { .word = "mount_tmpfs", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
