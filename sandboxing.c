@@ -397,8 +397,9 @@ PUBLIC struct builtin make_inaccessible_struct = {
     (char*[]){
         "make_inaccessible make paths... inaccessible.",
         "",
-        "It must be invoked after a private tmp is mounted and before any new processes",
-        "is created in this mount namespace.",
+        "It should be invoked after a private tmp is mounted and before any new processes",
+        "is created in this mount namespace, since it creates a tmp dir internally.",
+        "OTHERWISE it is hard to ensure nobody else is TEMPERING with the tmp dir.",
         "",
         "make_inaccessible is implemented using bind mount.",
         (char*) NULL
