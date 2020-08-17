@@ -573,10 +573,8 @@ int make_accessible_under_builtin(WORD_LIST *list)
             warn("%s: umount %s failed", self_name, tmp_path);
             ret = EXECUTION_FAILURE;
         }
-    }
 
 rm_tmpdir:
-    if (ret != EXECUTION_SUCCESS || strncmp(dest, "/tmp", 4) == 0) {
         if (rmdir(tmp_path) == -1) {
             warn("%s: rmdir tmp_path %s failed", self_name, tmp_path);
             ret = (EXECUTION_FAILURE);
@@ -593,7 +591,7 @@ PUBLIC struct builtin make_accessible_under_struct = {
     make_accessible_under_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
-        "make_accessible_under make /path/to/be/accessed/... accessible in dest (which must be a dir)",
+        "make_accessible_under make /path/to/be/accessed/... accessible in dest (which must be a dir other than /tmp)",
         "",
         "-o' options does not affect dest dir and '-R' only affects the /path/to/be/accessed/...",
         "",
