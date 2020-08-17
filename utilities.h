@@ -14,6 +14,9 @@
 
 #include <limits.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include <err.h>
 
 #define VLA_MAXLEN (50 * sizeof(void*))
@@ -166,6 +169,28 @@ int str2fd(const char *str, int *fd)
         warnx("Input fd too large!");
         return -1;
     }
+    return 0;
+}
+
+/**
+ * @param str must not be null
+ * @param mode must be a valid pointer.
+ *             If str2fd failed, its value is unchanged.
+ * @return 0 on success, -1 if not enough/too many arguments.
+ */
+int str2mode(const char *str, mode_t *mode)
+{
+    intmax_t result;
+    if (legal_number(str, &result) == 0) {
+        builtin_usage();
+        return -1;
+    } else if (result < 0 || result > (S_ISUID | S_IRWXU | S_IRWXG | S_IRWXO)) {
+        warnx("Input mode too large!");
+        return -1;
+    }
+ 
+    *mode = result;
+
     return 0;
 }
 

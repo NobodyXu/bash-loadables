@@ -52,28 +52,6 @@
 #define SCM_MAX_FD 253
 
 /**
- * @param str must not be null
- * @param mode must be a valid pointer.
- *             If str2fd failed, its value is unchanged.
- * @return 0 on success, -1 if not enough/too many arguments.
- */
-int str2mode(const char *str, mode_t *mode)
-{
-    intmax_t result;
-    if (legal_number(str, &result) == 0) {
-        builtin_usage();
-        return -1;
-    } else if (result < 0 || result > (S_ISUID | S_IRWXU | S_IRWXG | S_IRWXO)) {
-        warnx("Input mode too large!");
-        return -1;
-    }
- 
-    *mode = result;
-
-    return 0;
-}
-
-/**
  * @return NULL on error, otherwise ret value of get_f(name).
  * helper function for retrieving struct passwd* or struct group*.
  */
