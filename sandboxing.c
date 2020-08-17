@@ -619,6 +619,8 @@ PUBLIC struct builtin make_accessible_under_struct = {
 
 int mount_pseudo_builtin(WORD_LIST *list)
 {
+    const char *self_name = "mount_pseudo";
+
     const char *data = NULL;
     unsigned long flags = 0;
 
@@ -627,14 +629,14 @@ int mount_pseudo_builtin(WORD_LIST *list)
         switch (opt) {
         case 'O':
             if (data != NULL) {
-                warnx("mount_pseudo: '-o' option is specified at least twice");
+                warnx("%s: '-o' option is specified at least twice", self_name);
                 return (EX_USAGE);
             } else
                 data = list_optarg;
             break;
 
         case 'o':
-            if (parse_mount_options(list_optarg, &flags, "mount_pseudo") == -1)
+            if (parse_mount_options(list_optarg, &flags, self_name) == -1)
                 return (EX_USAGE);
             break;
 
@@ -652,7 +654,7 @@ int mount_pseudo_builtin(WORD_LIST *list)
         return (EX_USAGE);
 
     if (mount(argv[0], argv[1], argv[0], flags, data) == -1) {
-        warn("mount_pseudo: mount failed");
+        warn("%s: mount failed", self_name);
         return (EXECUTION_FAILURE);
     }
 
