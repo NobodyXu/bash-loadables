@@ -591,14 +591,15 @@ PUBLIC struct builtin make_accessible_under_struct = {
     make_accessible_under_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
-        "make_accessible_under make /path/to/be/accessed/... accessible in dest (which must be a dir other than /tmp)",
+        "make_accessible_under make paths... accessible in dest (which must be a dir other than /tmp)",
         "",
-        "-o' options does not affect dest dir and '-R' only affects the /path/to/be/accessed/...",
+        "-o' options does not affect dest dir and '-R' only affects the paths...",
         "",
-        "/path/to/be/accessed can be subdir or files in dest in absolute path.",
-        "If /path/to/be/accessed is a symlink, it will be dereferenced.",
-        "/path/to/be/accessed must not be '/'",
-        "There musn't be repeated path in /path/to/be/accessed/...",
+        "paths... can be subdir or files in dest.",
+        "paths... should be in absolute path",
+        "If paths is a symlink, it will be dereferenced.",
+        "paths... must not be '/'",
+        "There musn't be repeated path in paths...",
         "",
         "The resulting dest dir itself will be read-only.",
         "",
@@ -609,7 +610,7 @@ PUBLIC struct builtin make_accessible_under_struct = {
         "make_accessible_under is implemented using bind mount.",
         (char*) NULL
     },                            /* array of long documentation strings. */
-    "make_accessible_under [-R] [-o rdonly,noexec,nosuid,nodev] dest /path/to/be/accessed/ ...",
+    "make_accessible_under [-R] [-o rdonly,noexec,nosuid,nodev] dest paths ...",
     0                             /* reserved for internal use */
 };
 
