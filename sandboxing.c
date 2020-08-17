@@ -595,7 +595,7 @@ PUBLIC struct builtin make_accessible_under_struct = {
     (char*[]){
         "make_accessible_under make /path/to/be/accessed/... accessible in dest (which must be a dir)",
         "",
-        "'-R' and -o' options does not affect dest dir.",
+        "-o' options does not affect dest dir and '-R' only affects the /path/to/be/accessed/...",
         "",
         "/path/to/be/accessed can be subdir or files in dest in absolute path.",
         "If /path/to/be/accessed is a symlink, it will be dereferenced.",
