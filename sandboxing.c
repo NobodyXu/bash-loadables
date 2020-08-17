@@ -297,9 +297,11 @@ int bind_mount(const char *src, const char *dest, unsigned long flags, unsigned 
         return (EXECUTION_FAILURE);
     }
 
-    if (mount(NULL, dest, NULL, flags | MS_REMOUNT | bind_mount_flag, NULL) == -1) {
-        warn("%s: bind_mount: 2st mount (apply options %lu) of %s failed", fname, flags, dest);
-        return (EXECUTION_FAILURE);
+    if (flags != 0) {
+        if (mount(NULL, dest, NULL, flags | MS_REMOUNT | bind_mount_flag, NULL) == -1) {
+            warn("%s: bind_mount: 2st mount (apply options %lu) of %s failed", fname, flags, dest);
+            return (EXECUTION_FAILURE);
+        }
     }
 
     return (EXECUTION_SUCCESS);
