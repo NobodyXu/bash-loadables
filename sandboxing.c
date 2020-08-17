@@ -22,9 +22,28 @@
 
 #include <sched.h>
 
+#include <errno.h>
+
 #include <dlfcn.h>
 
-#include <errno.h>
+#include <cap-ng.h>
+
+static void *libcapng_handle;
+
+void* load_dynlib(const char *filename)
+{
+    void *handle = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
+    if (handle == NULL)
+        warnx("failed to load %s: %s", filename, dlerror());
+    return handle;
+}
+void* load_sym_impl(void *handle, const char *symbol, const char *dyn_name)
+{
+    void *sym_addr = dlsym(handle, symbol);
+    if (sym_addr == NULL)
+        warnx("failed to load %s from %s: %s", symbol, dyn_name, dlerror());
+    return sym_addr;
+}
 
 /**
  * Called when `sandboxing' is enabled and loaded from the shared object.
@@ -33,6 +52,7 @@
  */
 PUBLIC int sandboxing_builtin_load(char *name)
 {
+    libcapng_handle = NULL;
     return (1);
 }
 
@@ -40,7 +60,12 @@ PUBLIC int sandboxing_builtin_load(char *name)
  * Called when `template' is disabled.
  */
 PUBLIC void sandboxing_builtin_unload(char *name)
-{}
+{
+    if (libcapng_handle != NULL) {
+        if (dlclose(libcapng_handle) != 0)
+            warnx("%s(libcapng_handle) failed: %s", "dlclose", dlerror());
+    }
+}
 
 int enable_no_new_privs_strict_builtin(WORD_LIST *list)
 {
@@ -677,6 +702,70 @@ PUBLIC struct builtin mount_pseudo_struct = {
     0                             /* reserved for internal use */
 };
 
+void* load_libcap_ng_sym_impl(const char *symbol)
+{
+    const char *dyn_name = "libcap-ng.so";
+
+    if ((libcapng_handle = load_dynlib(dyn_name)) == NULL)
+        return NULL;
+    return load_sym_impl(libcapng_handle, symbol, dyn_name);
+}
+#define load_libcap_ng_sym(sym)                     \
+    ({                                              \
+        void *ret = load_libcap_ng_sym_impl((sym)); \
+        if (ret == NULL)                            \
+            return (EXECUTION_FAILURE);             \
+        ret;                                        \
+     })
+
+int parse_capng_select(const char *arg, size_t i, capng_select_t *set, const char *fname)
+{
+    if (strcasecmp(arg, "BOUNDS") == 0)
+        *set = CAPNG_SELECT_BOUNDS;
+    else if (strcasecmp(arg, "CAPS") == 0)
+        *set = CAPNG_SELECT_CAPS;
+    else if (strcasecmp(arg, "BOTH") == 0)
+        *set = CAPNG_SELECT_BOTH;
+    else {
+        warnx("%s: argv[%zu] is invalid", fname, i + 1);
+        return -1;
+    }
+    return 0;
+}
+int capng_clear_builtin(WORD_LIST *list)
+{
+    const char *self_name = "capng_clear";
+
+    typedef void (*capng_clear_t)(capng_select_t);
+
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    const char* argv[1];
+    if (to_argv(list, 1, argv) == -1)
+        return (EX_USAGE);
+
+    capng_select_t set;
+    if (parse_capng_select(argv[0], 0, &set, self_name) == -1)
+        return (EX_USAGE);
+
+    capng_clear_t capng_clear_p = load_libcap_ng_sym(self_name);
+
+    capng_clear_p(set);
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin capng_clear_struct = {
+    "capng_clear",       /* builtin name */
+    capng_clear_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "capng_clear",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -708,6 +797,8 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "make_inaccessible", .flags = 0 },
         { .word = "make_accessible_under", .flags = 0 },
         { .word = "mount_pseudo", .flags = 0 },
+
+        { .word = "capng_clear", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
