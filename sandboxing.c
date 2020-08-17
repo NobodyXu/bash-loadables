@@ -448,6 +448,9 @@ int make_accessible_under_builtin_impl(WORD_LIST *list, const char *dest, char *
         if (strcmp(bind_name, ".") == 0) {
             warnx("%s: the %zu path points to %s", self_name, i, ".");
             return (EX_USAGE);
+        } else if (strcmp(bind_name, "..") == 0) {
+            warnx("%s: the %zu path points to %s", self_name, i, "..");
+            return (EX_USAGE);
         }
         size_t bind_len = strlen(bind_name);
 
