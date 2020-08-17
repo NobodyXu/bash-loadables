@@ -440,11 +440,12 @@ int make_accessible_under_builtin_impl(WORD_LIST *list, const char *dest, char *
     size_t buf_len = tmp_len;
 
     for (size_t i = 1; list != NULL; list = list->next, ++i) {
-        char *bind_name = basename(list->word->word);
-        if (strcmp(bind_name, "/") == 0) {
+        if (strcmp(list->word->word, "/") == 0) {
             warnx("%s: the %zu path points to %s", self_name, i, "/");
             return (EX_USAGE);
-        } else if (strcmp(bind_name, ".") == 0) {
+        }
+        char *bind_name = basename(list->word->word);
+        if (strcmp(bind_name, ".") == 0) {
             warnx("%s: the %zu path points to %s", self_name, i, ".");
             return (EX_USAGE);
         }
