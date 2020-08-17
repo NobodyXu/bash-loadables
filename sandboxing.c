@@ -450,15 +450,6 @@ int make_accessible_under_builtin_impl(WORD_LIST *list, char **tmp_path, const s
 
     struct stat statbuf;
 
-    if (mkdtemp(*tmp_path) == NULL) {
-        warn("%s: mkdtemp failed", self_name);
-        return (EXECUTION_FAILURE);
-    }
-
-    if (mount("tmpfs", *tmp_path, "tmpfs", flags, "mode=0755") == -1) {
-        warn("%s: mount tmpfs at %s failed", self_name, *tmp_path);
-        return (EXECUTION_FAILURE);
-    }
     size_t buf_len = tmp_len;
 
     for (size_t i = 1; list != NULL; list = list->next, ++i) {
@@ -561,7 +552,20 @@ int make_accessible_under_builtin(WORD_LIST *list)
         return (EXECUTION_FAILURE);
     }
 
-    int ret = make_accessible_under_builtin_impl(list, &tmp_path, sizeof(template_path), dest, flags, recursive);
+    int ret;
+    if (mkdtemp(tmp_path) == NULL) {
+        warn("%s: mkdtemp failed", self_name);
+        ret = (EXECUTION_FAILURE);
+        goto freeup;
+    }
+
+    if (mount("tmpfs", tmp_path, "tmpfs", flags, "mode=0755") == -1) {
+        warn("%s: mount tmpfs at %s failed", self_name, tmp_path);
+        ret = (EXECUTION_FAILURE);
+        goto rm_tmpdir;
+    }
+
+    ret = make_accessible_under_builtin_impl(list, &tmp_path, sizeof(template_path), dest, flags, recursive);
     tmp_path[sizeof(template_path) - 1] = '\0';
 
     if (ret != EXECUTION_SUCCESS) {
@@ -571,6 +575,7 @@ int make_accessible_under_builtin(WORD_LIST *list)
         }
     }
 
+rm_tmpdir:
     if (ret != EXECUTION_SUCCESS || strncmp(dest, "/tmp", 4) == 0) {
         if (rmdir(tmp_path) == -1) {
             warn("%s: rmdir tmp_path %s failed", self_name, tmp_path);
@@ -578,6 +583,7 @@ int make_accessible_under_builtin(WORD_LIST *list)
         }
     }
 
+freeup:
     (free)(tmp_path);
 
     return ret;
