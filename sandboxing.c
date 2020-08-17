@@ -596,7 +596,7 @@ PUBLIC struct builtin make_accessible_under_struct = {
         "-o' options does not affect dest dir and '-R' only affects the paths...",
         "",
         "paths... can be subdir or files in dest.",
-        "paths... must not be '/'",
+        "paths... must not be '/', '.' or '..'",
         "If paths is a symlink, it will be dereferenced.",
         "There musn't be repeated path in paths...",
         "",
