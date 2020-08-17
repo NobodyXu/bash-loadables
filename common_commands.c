@@ -23,6 +23,10 @@ int realpath_builtin(WORD_LIST *list)
         return (EX_USAGE);
 
     char *rpath = realpath(argv[0], NULL);
+    if (rpath == NULL) {
+        warn("realpath failed");
+        return (EXECUTION_FAILURE);
+    }
 
     if (opt_argc == 1)
         bind_variable(argv[1], rpath, 0);
