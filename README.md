@@ -75,4 +75,5 @@ After a builtin is enabled, type `help builtin` to get detailed help.
 ### `common_commands`
 
  - `realpath: realpath path [var]`
+ - `mkdir: mkdir path [mode]`
  - `common_commands`
