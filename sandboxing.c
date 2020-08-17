@@ -405,19 +405,21 @@ int make_inaccessible_builtin_impl(WORD_LIST *list, const char *tmp_path)
 }
 int make_inaccessible_builtin(WORD_LIST *list)
 {
+    const char *self_name = "make_inaccessible";
+
     if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
     char tmp_path[] = "/tmp/sandboxing_make_inaccessible_builtinXXXXXX";
     if (mkdtemp(tmp_path) == NULL) {
-        warn("make_inaccessible: mkdtemp failed");
+        warn("%s: mkdtemp failed", self_name);
         return (EXECUTION_FAILURE);
     }
 
     int result = make_inaccessible_builtin_impl(list, tmp_path);
 
     if (rmdir(tmp_path) == -1) {
-        warn("make_inaccessible: rmdir failed");
+        warn("%s: rmdir failed", self_name);
         return (EXECUTION_FAILURE);
     }
 
