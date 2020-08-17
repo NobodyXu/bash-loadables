@@ -443,13 +443,24 @@ PUBLIC struct builtin make_inaccessible_struct = {
  * @param tmp_path should be null-terminated string and allocated on heap.
  * @param tmp_len include the trailing null byte.
  */
-int make_accessible_under_builtin_impl(WORD_LIST *list, const char *dest, char **tmp_path, size_t tmp_len,
+int make_accessible_under_builtin_impl(WORD_LIST *list, char **tmp_path, const size_t tmp_len, const char *dest, 
                                        unsigned long flags, unsigned long recursive)
 {
     const char *self_name = "make_accessible_under";
-    size_t buf_len = tmp_len;
 
     struct stat statbuf;
+
+    if (mkdtemp(*tmp_path) == NULL) {
+        warn("%s: mkdtemp failed", self_name);
+        return (EXECUTION_FAILURE);
+    }
+
+    if (mount("tmpfs", *tmp_path, "tmpfs", flags, "mode=0755") == -1) {
+        warn("%s: mount tmpfs at %s failed", self_name, *tmp_path);
+        return (EXECUTION_FAILURE);
+    }
+    size_t buf_len = tmp_len;
+
     for (size_t i = 1; list != NULL; list = list->next, ++i) {
         if (strcmp(list->word->word, "/") == 0) {
             warnx("%s: the %zu path points to %s", self_name, i, "/");
@@ -516,8 +527,32 @@ int make_accessible_under_builtin_impl(WORD_LIST *list, const char *dest, char *
     }
 
     (*tmp_path)[tmp_len - 1] = '\0';
+
+    if (stat(dest, &statbuf) == -1) {
+        if (errno != ENOENT) {
+            warn("%s: failed to stat the dest (realpath %s)", self_name, dest);
+            return (EXECUTION_FAILURE);
+        } else {
+            if (mkdir(dest, S_IRWXU) == -1) {
+                if (errno == EEXIST)
+                    warn("%s: somebody has tempered with dest (realpath %s) to perform deny-of-access attack", 
+                         self_name, dest);
+                else
+                    warn("%s: mkdir dest (realpath %s) failed", self_name, dest);
+                return (EXECUTION_FAILURE);
+            }
+        }
+    } else {
+        if (!S_ISDIR(statbuf.st_mode)) {
+            warn("%s: dest (realpath %s) isn't a dir!", self_name, dest);
+            return (EXECUTION_FAILURE);
+        }
+    }
+
     if (mount(*tmp_path, dest, NULL, MS_MOVE, NULL) == -1) {
         warn("%s: move mount from %s to %s failed", self_name, *tmp_path, dest);
+        if (rmdir(dest) == -1)
+            warn("%s: rmdir dest (realpath %s) failed", self_name, dest);
         return (EXECUTION_FAILURE);
     }
 
@@ -530,9 +565,11 @@ int make_accessible_under_builtin(WORD_LIST *list)
 
     const char *self_name = "make_accessible_under";
 
-    int result = bind_mount_getopt(&list, &flags, &recursive, self_name);
-    if (result != EXECUTION_SUCCESS)
-        return result;
+    {
+        int result = bind_mount_getopt(&list, &flags, &recursive, self_name);
+        if (result != EXECUTION_SUCCESS)
+            return result;
+    }
 
     const char *argv[1];
     if (readin_args(&list, 1, argv) != 1 || list == NULL) {
@@ -546,77 +583,35 @@ int make_accessible_under_builtin(WORD_LIST *list)
         return (EXECUTION_FAILURE);
     }
 
-    int make_dir_at_dest = 0;
-    {
-        struct stat statbuf;
-        int result = stat(dest, &statbuf);
-        if (result == -1 && errno != ENOENT) {
-            warn("%s: failed to stat the dest (realpath %s)", self_name, dest);
-            return (EXECUTION_FAILURE);
-        }
-    
-        if (result != -1) {
-            if (!S_ISDIR(statbuf.st_mode)) {
-                warn("%s: dest (realpath %s) is a file!", self_name, dest);
-                return (EXECUTION_FAILURE);
-            }
-        } else {
-            if (mkdir(dest, S_IRWXU) == -1) {
-                if (errno == EEXIST)
-                    warn("%s: somebody has tempered with dest (realpath %s) to perform deny-of-access attack", 
-                         self_name, dest);
-                else
-                    warn("%s: mkdir dest (realpath %s) failed", self_name, dest);
-                return (EXECUTION_FAILURE);
-            }
-            make_dir_at_dest = 1;
-        }
-    }
-
     const char template_path[] = "/tmp/sandboxing_make_accessible_under_builtinXXXXXX";
-
     char *tmp_path = (strdup)(template_path);
     if (tmp_path == NULL) {
         warn("%s: strdup failed", self_name);
-        return (EXECUTION_FAILURE);
-    }
-    if (mkdtemp(tmp_path) == NULL) {
-        warn("%s: mkdtemp failed", self_name);
+        (free)(dest);
         return (EXECUTION_FAILURE);
     }
 
-    if (mount("tmpfs", tmp_path, "tmpfs", flags, "mode=0755") == -1) {
-        warn("%s: mount tmpfs at %s failed", self_name, tmp_path);
-        result = (EXECUTION_FAILURE);
-    } else
-        result = make_accessible_under_builtin_impl(list, dest, &tmp_path, sizeof(template_path), flags, recursive);
+    int ret = make_accessible_under_builtin_impl(list, &tmp_path, sizeof(template_path), dest, flags, recursive);
     tmp_path[sizeof(template_path) - 1] = '\0';
 
-    if (result != EXECUTION_SUCCESS) {
+    if (ret != EXECUTION_SUCCESS) {
         if (umount(tmp_path) == -1) {
             warn("%s: umount %s failed", self_name, tmp_path);
-            result = EXECUTION_FAILURE;
-        }
-
-        if (make_dir_at_dest) {
-            if (rmdir(dest) == -1) {
-                warn("%s: rmdir dest (realpath %s) failed", self_name, dest);
-                result = (EXECUTION_FAILURE);
-            }
+            ret = EXECUTION_FAILURE;
         }
     }
 
-    if (result != EXECUTION_SUCCESS || strncmp(dest, "/tmp", 4) == 0) {
+    if (ret != EXECUTION_SUCCESS || strncmp(dest, "/tmp", 4) == 0) {
         if (rmdir(tmp_path) == -1) {
             warn("%s: rmdir tmp_path %s failed", self_name, tmp_path);
-            result = (EXECUTION_FAILURE);
+            ret = (EXECUTION_FAILURE);
         }
     }
 
     (free)(tmp_path);
     (free)(dest);
 
-    return result;
+    return ret;
 }
 PUBLIC struct builtin make_accessible_under_struct = {
     "make_accessible_under",       /* builtin name */
