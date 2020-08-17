@@ -528,31 +528,8 @@ int make_accessible_under_builtin_impl(WORD_LIST *list, char **tmp_path, const s
 
     (*tmp_path)[tmp_len - 1] = '\0';
 
-    if (stat(dest, &statbuf) == -1) {
-        if (errno != ENOENT) {
-            warn("%s: failed to stat the dest (realpath %s)", self_name, dest);
-            return (EXECUTION_FAILURE);
-        } else {
-            if (mkdir(dest, S_IRWXU) == -1) {
-                if (errno == EEXIST)
-                    warn("%s: somebody has tempered with dest (realpath %s) to perform deny-of-access attack", 
-                         self_name, dest);
-                else
-                    warn("%s: mkdir dest (realpath %s) failed", self_name, dest);
-                return (EXECUTION_FAILURE);
-            }
-        }
-    } else {
-        if (!S_ISDIR(statbuf.st_mode)) {
-            warn("%s: dest (realpath %s) isn't a dir!", self_name, dest);
-            return (EXECUTION_FAILURE);
-        }
-    }
-
     if (mount(*tmp_path, dest, NULL, MS_MOVE, NULL) == -1) {
         warn("%s: move mount from %s to %s failed", self_name, *tmp_path, dest);
-        if (rmdir(dest) == -1)
-            warn("%s: rmdir dest (realpath %s) failed", self_name, dest);
         return (EXECUTION_FAILURE);
     }
 
@@ -571,23 +548,16 @@ int make_accessible_under_builtin(WORD_LIST *list)
             return result;
     }
 
-    const char *argv[1];
-    if (readin_args(&list, 1, argv) != 1 || list == NULL) {
+    const char *dest;
+    if (readin_args(&list, 1, &dest) != 1 || list == NULL) {
         builtin_usage();
         return (EX_USAGE);
-    }
-
-    char *dest = realpath(argv[0], NULL);
-    if (dest == NULL) {
-        warn("%s: realpath failed for dest", self_name);
-        return (EXECUTION_FAILURE);
     }
 
     const char template_path[] = "/tmp/sandboxing_make_accessible_under_builtinXXXXXX";
     char *tmp_path = (strdup)(template_path);
     if (tmp_path == NULL) {
         warn("%s: strdup failed", self_name);
-        (free)(dest);
         return (EXECUTION_FAILURE);
     }
 
@@ -609,7 +579,6 @@ int make_accessible_under_builtin(WORD_LIST *list)
     }
 
     (free)(tmp_path);
-    (free)(dest);
 
     return ret;
 }
@@ -618,7 +587,7 @@ PUBLIC struct builtin make_accessible_under_struct = {
     make_accessible_under_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
-        "make_accessible_under make /path/to/be/accessed/... accessible in dest (which is dereferenced)",
+        "make_accessible_under make /path/to/be/accessed/... accessible in dest (which must be a dir)",
         "",
         "/path/to/be/accessed can be subdir or files in dest in absolute path.",
         "If /path/to/be/accessed is a symlink, it will be dereferenced.",
