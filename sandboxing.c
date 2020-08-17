@@ -290,16 +290,18 @@ PUBLIC struct builtin chroot_struct = {
 int bind_mount(const char *src, const char *dest, unsigned long flags, unsigned long recursive, 
                const char *fname)
 {
+    const char *self_name = "bind_mount";
+
     const unsigned long bind_mount_flag = MS_BIND | (recursive & MS_REC);
     if (mount(src, dest, NULL, bind_mount_flag, NULL) == -1) {
-        warn("%s: bind_mount: 1st mount (bind mount only) of src = %s, dest = %s failed", 
-             fname, src, dest);
+        warn("%s: %s: 1st mount (bind mount only) of src = %s, dest = %s failed", 
+             fname, self_name, src, dest);
         return (EXECUTION_FAILURE);
     }
 
     if (flags != 0) {
         if (mount(NULL, dest, NULL, flags | MS_REMOUNT | bind_mount_flag, NULL) == -1) {
-            warn("%s: bind_mount: 2st mount (apply options %lu) of %s failed", fname, flags, dest);
+            warn("%s: %s: 2st mount (apply options %lu) of %s failed", fname, self_name, flags, dest);
             return (EXECUTION_FAILURE);
         }
     }
