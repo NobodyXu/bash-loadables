@@ -1,14 +1,22 @@
 /* sandboxing - loadable builtin that helps user sandbox applications */
 
+#define _BSD_SOURCE
+#define _DEFAULT_SOURCE
+#define _XOPEN_SOURCE 700
+#define _POSIX_C_SOURCE 200809L
+
 #include "utilities.h"
 
 #include <stdio.h>
 #include <string.h>
 
 #include <unistd.h>
+#include <fcntl.h>
 
-#include <sys/mount.h>
+#include <sys/types.h>
 #include <sys/prctl.h>
+#include <sys/stat.h>
+#include <sys/mount.h>
 
 #include <linux/securebits.h>
 
@@ -439,6 +447,7 @@ int make_accessible_under_builtin_impl(WORD_LIST *list, const char *dest, char *
     const char *self_name = "make_accessible_under";
     size_t buf_len = tmp_len;
 
+    struct stat statbuf;
     for (size_t i = 1; list != NULL; list = list->next, ++i) {
         if (strcmp(list->word->word, "/") == 0) {
             warnx("%s: the %zu path points to %s", self_name, i, "/");
@@ -454,6 +463,11 @@ int make_accessible_under_builtin_impl(WORD_LIST *list, const char *dest, char *
         }
         size_t bind_len = strlen(bind_name);
 
+        if (stat(list->word->word, &statbuf) == -1) {
+            warn("%s: failed to stat the %zu path", self_name, i);
+            return (EXECUTION_FAILURE);
+        }
+
         if (buf_len < tmp_len + 1 + bind_len) {
             void *p = realloc(*tmp_path, tmp_len + 1 + bind_len);
             if (p == NULL) {
@@ -466,6 +480,36 @@ int make_accessible_under_builtin_impl(WORD_LIST *list, const char *dest, char *
         (*tmp_path)[tmp_len - 1] = '/';
         strncpy(*tmp_path + tmp_len, bind_name, bind_len + 1);
         (*tmp_path + tmp_len)[bind_len] = '\0';
+
+        if (S_ISDIR(statbuf.st_mode)) {
+            if (mkdir(*tmp_path, S_IRWXU) == -1) {
+                if (errno == EEXIST) {
+                    warn("%s: either the %zu path is the same as one of the previous path, or "
+                         "somebody has tempered with %s", self_name, i, *tmp_path);
+                    return (EXECUTION_FAILURE);
+                }
+                warn("%s: mkdir %s failed", self_name, *tmp_path);
+                return (EXECUTION_FAILURE);
+            }
+        } else {
+            int fd;
+            do {
+                fd = open(*tmp_path, O_RDONLY | O_CREAT | O_EXCL, S_IRWXU);
+            } while (fd == -1 && errno == EINTR);
+            if (fd == -1) {
+                if (errno == EEXIST) {
+                    warn("%s: either the %zu path is the same as one of the previous path, or "
+                         "somebody has tempered with %s", self_name, i, *tmp_path);
+                    return (EXECUTION_FAILURE);
+                }
+                warn("%s: open %s failed", self_name, *tmp_path);
+                return (EXECUTION_FAILURE);
+            }
+            if (close(fd) == -1 && errno != EINTR) {
+                warn("%s: close %s failed", self_name, *tmp_path);
+                return (EXECUTION_FAILURE);
+            }
+        }
 
         if (bind_mount(list->word->word, *tmp_path, flags, recursive, self_name) != EXECUTION_SUCCESS)
             return (EXECUTION_FAILURE);
@@ -523,8 +567,9 @@ PUBLIC struct builtin make_accessible_under_struct = {
         "make_accessible_under make /path/to/be/accessed/... accessible in dest",
         "",
         "/path/to/be/accessed can be subdir or files in dest in absolute path.",
-        "If /path/to/be/accessed is a symlink, if won't get dereferenced.",
+        "If /path/to/be/accessed is a symlink, it will be dereferenced.",
         "/path/to/be/accessed must not be '/'",
+        "There musn't be repeated path in /path/to/be/accessed/...",
         "",
         "The resulting dest dir itself will be read-only.",
         "",
