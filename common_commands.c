@@ -52,6 +52,44 @@ PUBLIC struct builtin realpath_struct = {
     0                       /* reserved for internal use */
 };
 
+int mkdir_builtin(WORD_LIST *list)
+{
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    mode_t mode;
+    const char *argv[2];
+    switch (to_argv_opt(list, 1, 1, argv)) {
+        case -1:
+            return (EX_USAGE);
+
+        case 0:
+            mode = S_IRWXU;
+            break;
+
+        case 1:
+            if (str2mode(argv[1], &mode) == -1)
+                return (EX_USAGE);
+    }
+
+    if (mkdir(argv[0], mode) == -1) {
+        warn("mkdir failed");
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin mkdir_struct = {
+    "mkdir",             /* builtin name */
+    mkdir_builtin,       /* function implementing the builtin */
+    BUILTIN_ENABLED,        /* initial flags for builtin */
+    (char*[]){
+        (char*) NULL
+    },                      /* array of long documentation strings. */
+    "mkdir path [mode]",             /* usage synopsis; becomes short_doc */
+    0                       /* reserved for internal use */
+};
+
 int common_commands_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -72,6 +110,7 @@ int common_commands_builtin(WORD_LIST *_)
         { .word = (char*) info.dli_fname, .flags = 0 },
 
         { .word = "realpath", .flags = 0 },
+        { .word = "mkdir", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
