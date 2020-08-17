@@ -559,7 +559,7 @@ int make_accessible_under_builtin(WORD_LIST *list)
         goto freeup;
     }
 
-    if (mount("tmpfs", tmp_path, "tmpfs", flags, "mode=0755") == -1) {
+    if (mount("tmpfs", tmp_path, "tmpfs", 0, "mode=0755") == -1) {
         warn("%s: mount tmpfs at %s failed", self_name, tmp_path);
         ret = (EXECUTION_FAILURE);
         goto rm_tmpdir;
@@ -594,6 +594,8 @@ PUBLIC struct builtin make_accessible_under_struct = {
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
         "make_accessible_under make /path/to/be/accessed/... accessible in dest (which must be a dir)",
+        "",
+        "'-R' and -o' options does not affect dest dir.",
         "",
         "/path/to/be/accessed can be subdir or files in dest in absolute path.",
         "If /path/to/be/accessed is a symlink, it will be dereferenced.",
