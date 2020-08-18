@@ -573,16 +573,27 @@ int make_accessible_under_builtin_impl(WORD_LIST *list, char **tmp_path, const s
 }
 int make_accessible_under_builtin(WORD_LIST *list)
 {
+    const char *self_name = "make_accessible_under";
+
+    const char *data = NULL;
     unsigned long flags = 0;
     unsigned long recursive = 0;
 
-    const char *self_name = "make_accessible_under";
-
-    {
-        int result = bind_mount_getopt(&list, &flags, &recursive, self_name);
-        if (result != EXECUTION_SUCCESS)
-            return result;
+    reset_internal_getopt();
+    for (int opt; (opt = internal_getopt(list, "o:O:R")) != -1; ) {
+        if (opt == 'O') {
+            if (data != NULL) {
+                warnx("%s: '-O' option is specified at least twice", self_name);
+                return (EX_USAGE);
+            } else
+                data = list_optarg;
+        } else {
+            int result = bind_mount_parseopt(opt, &flags, &recursive, self_name);
+            if (result != EXECUTION_SUCCESS)
+                return result;
+        }
     }
+    list = loptend;
 
     const char *dest;
     if (readin_args(&list, 1, &dest) != 1 || list == NULL) {
@@ -604,7 +615,7 @@ int make_accessible_under_builtin(WORD_LIST *list)
         goto freeup;
     }
 
-    if (mount("tmpfs", tmp_path, "tmpfs", 0, "mode=0755") == -1) {
+    if (mount("tmpfs", tmp_path, "tmpfs", 0, data) == -1) {
         warn("%s: mount tmpfs at %s failed", self_name, tmp_path);
         ret = (EXECUTION_FAILURE);
         goto rm_tmpdir;
@@ -639,6 +650,7 @@ PUBLIC struct builtin make_accessible_under_struct = {
         "make_accessible_under make paths... accessible in dest (which must be a dir other than /tmp)",
         "",
         "-o' options does not affect dest dir and '-R' only affects the paths...",
+        "-O options will be passed to mount tmpfs.",
         "",
         "paths... can be subdir or files in dest.",
         "paths... must not be '/', '.' or '..'",
@@ -654,7 +666,7 @@ PUBLIC struct builtin make_accessible_under_struct = {
         "make_accessible_under is implemented using bind mount.",
         (char*) NULL
     },                            /* array of long documentation strings. */
-    "make_accessible_under [-R] [-o rdonly,noexec,nosuid,nodev] dest paths ...",
+    "make_accessible_under [-R] [-o rdonly,noexec,nosuid,nodev] [-O options,...] dest paths ...",
     0                             /* reserved for internal use */
 };
 
