@@ -682,7 +682,7 @@ int mount_pseudo_builtin(WORD_LIST *list)
         switch (opt) {
         case 'O':
             if (data != NULL) {
-                warnx("%s: '-o' option is specified at least twice", self_name);
+                warnx("%s: '-O' option is specified at least twice", self_name);
                 return (EX_USAGE);
             } else
                 data = list_optarg;
