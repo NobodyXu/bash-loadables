@@ -821,12 +821,8 @@ int parse_capng_select(const char *arg, size_t i, capng_select_t *set, const cha
     }
     return 0;
 }
-int capng_clear_builtin(WORD_LIST *list)
+int readin_capng_select_only_impl(WORD_LIST *list, capng_select_t *set, const char *self_name)
 {
-    const char *self_name = "capng_clear";
-
-    typedef void (*capng_clear_t)(capng_select_t);
-
     if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
@@ -834,9 +830,27 @@ int capng_clear_builtin(WORD_LIST *list)
     if (to_argv(list, 1, argv) == -1)
         return (EX_USAGE);
 
-    capng_select_t set;
-    if (parse_capng_select(argv[0], 0, &set, self_name) == -1)
+    if (parse_capng_select(argv[0], 0, set, self_name) == -1)
         return (EX_USAGE);
+
+    return (EXECUTION_SUCCESS);
+}
+#define readin_capng_select_only(list)      \
+    ({                                   \
+        capng_select_t set;              \
+        int result = readin_capng_select_only_impl((list), &set, self_name); \
+        if (result != EXECUTION_SUCCESS) \
+            return result;               \
+        set;                             \
+     })
+
+int capng_clear_builtin(WORD_LIST *list)
+{
+    const char *self_name = "capng_clear";
+
+    typedef void (*capng_clear_t)(capng_select_t);
+
+    capng_select_t set = readin_capng_select_only(list);
 
     capng_clear_t capng_clear_p = load_libcap_ng_sym(self_name);
 
@@ -866,16 +880,7 @@ int capng_fill_builtin(WORD_LIST *list)
 
     typedef void (*capng_fill_t)(capng_select_t);
 
-    if (check_no_options(&list) == -1)
-        return (EX_USAGE);
-
-    const char* argv[1];
-    if (to_argv(list, 1, argv) == -1)
-        return (EX_USAGE);
-
-    capng_select_t set;
-    if (parse_capng_select(argv[0], 0, &set, self_name) == -1)
-        return (EX_USAGE);
+    capng_select_t set = readin_capng_select_only(list);
 
     capng_fill_t capng_fill_p = load_libcap_ng_sym(self_name);
 
@@ -905,16 +910,7 @@ int capng_apply_builtin(WORD_LIST *list)
 
     typedef int (*capng_apply_t)(capng_select_t);
 
-    if (check_no_options(&list) == -1)
-        return (EX_USAGE);
-
-    const char* argv[1];
-    if (to_argv(list, 1, argv) == -1)
-        return (EX_USAGE);
-
-    capng_select_t set;
-    if (parse_capng_select(argv[0], 0, &set, self_name) == -1)
-        return (EX_USAGE);
+    capng_select_t set = readin_capng_select_only(list);
 
     capng_apply_t capng_apply_p = load_libcap_ng_sym(self_name);
 
@@ -1064,16 +1060,7 @@ int capng_have_capabilities_builtin(WORD_LIST *list)
 
     typedef int (*capng_have_caps_t)(capng_select_t);
 
-    if (check_no_options(&list) == -1)
-        return (EX_USAGE);
-
-    const char* argv[1];
-    if (to_argv(list, 1, argv) == -1)
-        return (EX_USAGE);
-
-    capng_select_t set;
-    if (parse_capng_select(argv[0], 0, &set, self_name) == -1)
-        return (EX_USAGE);
+    capng_select_t set = readin_capng_select_only(list);
 
     capng_have_caps_t capng_have_caps_p = load_libcap_ng_sym(self_name);
 
