@@ -253,7 +253,7 @@ PUBLIC struct builtin unshare_ns_struct = {
 
 int setns_builtin(WORD_LIST *list)
 {
-    int flags = PARSE_FLAG(&list, "CINMPuU", CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, \
+    int flags = PARSE_FLAG(&list, "CINMpuU", CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, \
                                              CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS);
 
     const char *argv[1];
@@ -288,7 +288,7 @@ PUBLIC struct builtin setns_struct = {
         "Check manpage for setns(2) for behavior of this function.",
         (char*) NULL
     },                            /* array of long documentation strings. */
-    "setns [-CINMPuU] <int> fd",        /* usage synopsis; becomes short_doc */
+    "setns [-CINMpuU] <int> fd",        /* usage synopsis; becomes short_doc */
     0                             /* reserved for internal use */
 };
 
