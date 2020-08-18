@@ -964,6 +964,60 @@ PUBLIC struct builtin capng_update_struct = {
     0                             /* reserved for internal use */
 };
 
+int capng_have_capability_builtin(WORD_LIST *list)
+{
+    const char *self_name = "capng_have_capability";
+
+    typedef int (*capng_have_cap_t)(capng_type_t, unsigned);
+    typedef int (*capng_name_to_cap_t)(const char*);
+
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    const char* argv[2];
+    if (to_argv(list, 1, argv) == -1)
+        return (EX_USAGE);
+
+    capng_type_t type;
+
+    if (strcasecmp(argv[0], "EFFECTIVE") == 0)
+        type = CAPNG_EFFECTIVE;
+    else if (strcasecmp(argv[0], "PERMITTED") == 0)
+        type = CAPNG_PERMITTED;
+    else if (strcasecmp(argv[0], "INHERITABLE") == 0)
+        type = CAPNG_INHERITABLE;
+    else if (strcasecmp(argv[0], "BOUNDING_SET") == 0)
+        type = CAPNG_BOUNDING_SET;
+    else {
+        warnx("%s: Unknown argv[1]", self_name);
+        return (EX_USAGE);
+    }
+
+    capng_name_to_cap_t capng_name_to_cap_p = load_libcap_ng_sym("capng_name_to_capability");
+
+    const int cap = capng_name_to_cap_p(argv[1]);
+    if (cap < 0) {
+        warnx("%s: Invalid capability", self_name);
+        return (EX_USAGE);
+    }
+
+    capng_have_cap_t capng_have_cap_p = load_libcap_ng_sym(self_name);
+
+    return !capng_have_cap_p(type, cap);
+}
+PUBLIC struct builtin capng_have_capability_struct = {
+    "capng_have_capability",       /* builtin name */
+    capng_have_capability_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "capname should be the same name as defined in linux/capability.h with CAP_ prefix removed.",
+        "The string case of capname doesn't matter.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "capng_have_capability EFFECTIVE/PERMITTED/INHERITABLE/BOUNDING_SET ADD/DROP capname",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -1000,6 +1054,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "capng_clear", .flags = 0 },
         { .word = "capng_apply", .flags = 0 },
         { .word = "capng_update", .flags = 0 },
+        { .word = "capng_have_capability", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
