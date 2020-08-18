@@ -206,8 +206,9 @@ int str2id(const char *str, uint32_t *integer, const char *fname, size_t i)
             return -1;
 
         case 0:
-            return 0;
+            break;
     }
+    return 0;
 }
 
 /**
