@@ -788,9 +788,10 @@ PUBLIC struct builtin mount_pseudo_struct = {
     0                             /* reserved for internal use */
 };
 
+static const char *libcap_ng_lib_name = "libcap-ng.so";
 void* load_libcap_ng_sym_impl(const char *symbol)
 {
-    const char *dyn_name = "libcap-ng.so";
+    const char *dyn_name = libcap_ng_lib_name;
 
     if (libcapng_handle == NULL) {
         if ((libcapng_handle = load_dynlib(dyn_name)) == NULL)
@@ -1018,6 +1019,66 @@ PUBLIC struct builtin capng_have_capability_struct = {
     0                             /* reserved for internal use */
 };
 
+int capng_have_capabilities_builtin(WORD_LIST *list)
+{
+    const char *self_name = "capng_have_capabilities";
+
+    typedef int (*capng_have_caps_t)(capng_select_t);
+
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    const char* argv[1];
+    if (to_argv(list, 1, argv) == -1)
+        return (EX_USAGE);
+
+    capng_select_t set;
+    if (parse_capng_select(argv[0], 0, &set, self_name) == -1)
+        return (EX_USAGE);
+
+    capng_have_caps_t capng_have_caps_p = load_libcap_ng_sym(self_name);
+
+    switch (capng_have_caps_p(set)) {
+        case CAPNG_FAIL:
+            warnx("%s failed", self_name);
+            return (EXECUTION_FAILURE);
+
+        case CAPNG_NONE:
+            return 4;
+
+        case CAPNG_PARTIAL:
+            return 3;
+
+        case CAPNG_FULL:
+            return 0;
+
+        default:
+            warnx("%s: %s from %s returns unknown return value", self_name, self_name, libcap_ng_lib_name);
+            return (EXECUTION_FAILURE);
+    }
+}
+PUBLIC struct builtin capng_have_capabilities_struct = {
+    "capng_have_capabilities",       /* builtin name */
+    capng_have_capabilities_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "CAPS standss for tranditional capabilities.",
+        "BOUNDS stands for the bounding set.",
+        "BOTH means both CAPS and BOUNDS.",
+        "",
+        "Returns 0 on full capabilities.",
+        "Returns 3 on partial capabilities.",
+        "Returns 4 on no capabilities.",
+        "Returns 1 on failure.",
+        "Returns 2 on wrong usage.",
+        "",
+        "Check manpage for capabilities(7) for more info.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "capng_have_capabilities [CAPS/BOUNDS/BOTH]",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -1055,6 +1116,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "capng_apply", .flags = 0 },
         { .word = "capng_update", .flags = 0 },
         { .word = "capng_have_capability", .flags = 0 },
+        { .word = "capng_have_capabilities", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
