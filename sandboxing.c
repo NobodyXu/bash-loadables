@@ -760,9 +760,14 @@ PUBLIC struct builtin capng_clear_struct = {
     capng_clear_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
+        "CAPS standss for tranditional capabilities.",
+        "BOUNDS stands for the bounding set.",
+        "BOTH means both CAPS and BOUNDS.",
+        "",
+        "Check manpage for capabilities(7) for more info.",
         (char*) NULL
     },                            /* array of long documentation strings. */
-    "capng_clear",
+    "capng_clear [CAPS/BOUNDS/BOTH]",
     0                             /* reserved for internal use */
 };
 
