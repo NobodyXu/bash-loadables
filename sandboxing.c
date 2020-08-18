@@ -903,6 +903,67 @@ PUBLIC struct builtin capng_apply_struct = {
     0                             /* reserved for internal use */
 };
 
+int capng_update_builtin(WORD_LIST *list)
+{
+    const char *self_name = "capng_update";
+
+    typedef int (*capng_update_t)(capng_act_t, capng_type_t, unsigned);
+    typedef int (*capng_name_to_cap_t)(const char*);
+
+    capng_type_t type = PARSE_FLAG(&list, "EPIB", 
+                                   CAPNG_EFFECTIVE, CAPNG_PERMITTED, CAPNG_INHERITABLE, CAPNG_BOUNDING_SET);
+
+    const char* argv[2];
+    if (to_argv(list, 2, argv) == -1)
+        return (EX_USAGE);
+
+    capng_act_t action;
+    if (strcasecmp(argv[0], "ADD") == 0)
+        action = CAPNG_ADD;
+    else if (strcasecmp(argv[0], "DROP") == 0)
+        action = CAPNG_DROP;
+    else {
+        warnx("%s: Invalid first non-option arg", self_name);
+        return (EX_USAGE);
+    }
+
+    capng_name_to_cap_t capng_name_to_cap_p = load_libcap_ng_sym("capng_name_to_capability");
+
+    const int cap = capng_name_to_cap_p(argv[1]);
+    if (cap < 0) {
+        warnx("%s: Invalid capability", self_name);
+        return (EX_USAGE);
+    }
+
+    capng_update_t capng_update_p = load_libcap_ng_sym(self_name);
+
+    if (capng_update_p(action, type, cap) == -1) {
+        warnx("%s failed", self_name);
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin capng_update_struct = {
+    "capng_update",       /* builtin name */
+    capng_update_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "Pass '-E' to set effective set.",
+        "Pass '-P' to set permitted set.",
+        "Pass '-I' to set inheritable set.",
+        "Pass '-B' to set bounding set.",
+        "",
+        "Options '-EPIB' are not exclusive to each other.",
+        "",
+        "capname should be the same name as defined in linux/capability.h with CAP_ prefix removed.",
+        "The string case of capname doesn't matter.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "capng_update [-EPIB] ADD/DROP capname",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -938,6 +999,7 @@ int sandboxing_builtin(WORD_LIST *_)
 
         { .word = "capng_clear", .flags = 0 },
         { .word = "capng_apply", .flags = 0 },
+        { .word = "capng_update", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
