@@ -368,26 +368,34 @@ int parse_mount_options(const char *options, unsigned long *flags, const char *f
 
     return 0;
 }
+int bind_mount_parseopt(int opt, unsigned long *flags, unsigned long *recursive, const char *fname)
+{
+    switch (opt) {
+    case 'o':
+        if (parse_mount_options(list_optarg, flags, fname) == -1)
+            return (EX_USAGE);
+        break;
+
+    case 'R':
+        *recursive = -1;
+        break;
+
+    CASE_HELPOPT;
+
+    default:
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
 int bind_mount_getopt(WORD_LIST **list, unsigned long *flags, unsigned long *recursive, const char *fname)
 {
     reset_internal_getopt();
     for (int opt; (opt = internal_getopt(*list, "o:R")) != -1; ) {
-        switch (opt) {
-        case 'o':
-            if (parse_mount_options(list_optarg, flags, fname) == -1)
-                return (EX_USAGE);
-            break;
-
-        case 'R':
-            *recursive = -1;
-            break;
-
-        CASE_HELPOPT;
-
-        default:
-            builtin_usage();
-            return (EX_USAGE);
-        }
+        int result = bind_mount_parseopt(opt, flags, recursive, fname);
+        if (result != EXECUTION_SUCCESS)
+            return result;
     }
     *list = loptend;
 
