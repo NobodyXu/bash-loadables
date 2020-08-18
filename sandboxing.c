@@ -76,6 +76,11 @@ int enable_no_new_privs_strict_builtin(WORD_LIST *list)
     if (check_no_options(&list) == -1)
         return (EX_USAGE);
 
+    if (list != NULL) {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
     prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
 
     return (EXECUTION_SUCCESS);
