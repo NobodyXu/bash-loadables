@@ -240,6 +240,9 @@ PUBLIC struct builtin unshare_ns_struct = {
     (char*[]){
         "unshare_ns puts the process in a new namespace",
         "",
+        "If you specified '-p' to create a new PID namespace, then the next child you created will becomes",
+        "PID 1 of the new PID namespace and this process won't be able to fork again.",
+        "",
         "Check 'help clone_ns' for more information on how to use this function.",
         (char*) NULL
     },                            /* array of long documentation strings. */
