@@ -317,6 +317,15 @@ PUBLIC struct builtin chroot_struct = {
     0                             /* reserved for internal use */
 };
 
+int remount(const char *dest, unsigned long flags, const char *data, const char *fname)
+{
+    if (mount(NULL, dest, NULL, flags | MS_REMOUNT, data) == -1) {
+        warn("%s: %s: failed to apply options %lu, and data %s to %s", 
+             fname, "remount", flags, data, dest);
+        return (EXECUTION_FAILURE);
+    }
+    return (EXECUTION_SUCCESS);
+}
 /**
  * @flags should contain flags other than MS_REMOUNT, MS_BIND and MS_REC.
  */
@@ -332,14 +341,14 @@ int bind_mount(const char *src, const char *dest, unsigned long flags, unsigned 
         return (EXECUTION_FAILURE);
     }
 
-    if (flags != 0) {
-        if (mount(NULL, dest, NULL, flags | MS_REMOUNT | bind_mount_flag, NULL) == -1) {
-            warn("%s: %s: 2st mount (apply options %lu) of %s failed", fname, self_name, flags, dest);
-            return (EXECUTION_FAILURE);
-        }
-    }
+    int ret;
 
-    return (EXECUTION_SUCCESS);
+    if (flags != 0)
+        ret = remount(dest, flags | bind_mount_flag, NULL, fname);
+    else
+        ret = (EXECUTION_SUCCESS);
+
+    return ret;
 }
 int parse_mount_options(const char *options, unsigned long *flags, const char *fname)
 {
@@ -558,11 +567,13 @@ int make_accessible_under_builtin_impl(WORD_LIST *list, char **tmp_path, const s
             }
         }
 
-        if (bind_mount(list->word->word, *tmp_path, flags, recursive, self_name) != EXECUTION_SUCCESS)
+        if (bind_mount(list->word->word, *tmp_path, 0, recursive, self_name) != EXECUTION_SUCCESS)
             return (EXECUTION_FAILURE);
     }
 
     (*tmp_path)[tmp_len - 1] = '\0';
+
+    ;
 
     if (mount(*tmp_path, dest, NULL, MS_MOVE, NULL) == -1) {
         warn("%s: move mount from %s to %s failed", self_name, *tmp_path, dest);
