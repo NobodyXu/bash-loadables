@@ -497,8 +497,7 @@ PUBLIC struct builtin make_inaccessible_struct = {
  * @param tmp_path should be null-terminated string and allocated on heap.
  * @param tmp_len include the trailing null byte.
  */
-int make_accessible_under_builtin_impl(WORD_LIST *list, char **tmp_path, const size_t tmp_len, const char *dest, 
-                                       unsigned long flags, unsigned long recursive)
+int bind_to_dir(WORD_LIST *list, char **tmp_path, const size_t tmp_len, unsigned long recursive)
 {
     const char *self_name = "make_accessible_under";
 
@@ -571,15 +570,6 @@ int make_accessible_under_builtin_impl(WORD_LIST *list, char **tmp_path, const s
             return (EXECUTION_FAILURE);
     }
 
-    (*tmp_path)[tmp_len - 1] = '\0';
-
-    ;
-
-    if (mount(*tmp_path, dest, NULL, MS_MOVE, NULL) == -1) {
-        warn("%s: move mount from %s to %s failed", self_name, *tmp_path, dest);
-        return (EXECUTION_FAILURE);
-    }
-
     return (EXECUTION_SUCCESS);
 }
 int make_accessible_under_builtin(WORD_LIST *list)
@@ -632,8 +622,20 @@ int make_accessible_under_builtin(WORD_LIST *list)
         goto rm_tmpdir;
     }
 
-    ret = make_accessible_under_builtin_impl(list, &tmp_path, sizeof(template_path), dest, flags, recursive);
+    ret = bind_to_dir(list, &tmp_path, sizeof(template_path), recursive);
     tmp_path[sizeof(template_path) - 1] = '\0';
+
+    if (ret == EXECUTION_SUCCESS) {
+        if (flags != 0)
+            ret = remount(tmp_path, flags, data, self_name);
+    }
+
+    if (ret == EXECUTION_SUCCESS) {
+        if (mount(tmp_path, dest, NULL, MS_MOVE, NULL) == -1) {
+            warn("%s: move mount from %s to %s failed", self_name, tmp_path, dest);
+            ret = (EXECUTION_FAILURE);
+        }
+    }
 
     if (ret != EXECUTION_SUCCESS) {
         if (umount(tmp_path) == -1) {
@@ -660,7 +662,7 @@ PUBLIC struct builtin make_accessible_under_struct = {
     (char*[]){
         "make_accessible_under make paths... accessible in dest (which must be a dir other than /tmp)",
         "",
-        "-o' options does not affect dest dir and '-R' only affects the paths...",
+        "-o' options only affect tmpfs mounted at dest dir and '-R' only affects the bind mounting of paths...",
         "-O options will be passed to mount tmpfs.",
         "",
         "paths... can be subdir or files in dest.",
