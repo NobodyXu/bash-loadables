@@ -792,8 +792,10 @@ void* load_libcap_ng_sym_impl(const char *symbol)
 {
     const char *dyn_name = "libcap-ng.so";
 
-    if ((libcapng_handle = load_dynlib(dyn_name)) == NULL)
-        return NULL;
+    if (libcapng_handle == NULL) {
+        if ((libcapng_handle = load_dynlib(dyn_name)) == NULL)
+            return NULL;
+    }
     return load_sym_impl(libcapng_handle, symbol, dyn_name);
 }
 #define load_libcap_ng_sym(sym)                     \
