@@ -325,128 +325,6 @@ PUBLIC struct builtin chroot_struct = {
     0                             /* reserved for internal use */
 };
 
-struct create_ns_arg {
-    int pipefd[2];
-    WORD_LIST *list;
-};
-int create_ns_fn(void *args)
-{
-    struct create_userns_arg *arg = args;
-    pid_t ppid = getppid();
-
-    ;
-
-    return (EXECUTION_SUCCESS);
-}
-int create_ns_builtin(WORD_LIST *list)
-{
-    const char *self_name = "create_userns";
-
-    int flags = PARSE_FLAG(&list, "CINMpU", CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, \
-                                            CLONE_NEWPID, CLONE_NEWUTS);
-
-    if (list == NULL) {
-        builtin_usage();
-        return (EX_USAGE);
-    }
-
-    if (strcasecmp(list->word->word, "uid_map:") != 0 && strcasecmp(list->word->word, "gid_map:") != 0) {
-        builtin_usage();
-        return (EX_USAGE);
-    }
-
-    int ret = (EXECUTION_SUCCESS);
-
-    int pid;
-    struct create_ns_arg arg = {
-        .list = list
-    };
-
-    if (pipe(arg.pipefd) == -1) {
-        warn("%s: pipe failed", self_name);
-        return (EXECUTION_FAILURE);
-    }
-
-    {
-        // Put the stack as tempoary variable, since it's never going to be
-        // used in the parent.
-        // In the child process, executione starts in create_ns_fn, not here,
-        // so it isn't undefined behavior.
-        char stack[8064]; // It's never going to use that much in reality
-        pid = clone(create_ns_fn, stack, SIGCHLD, &arg);
-        if (pid == -1) {
-            warn("%s: clone failed", self_name);
-            ret = (EXECUTION_FAILURE);
-            goto cleanup_pipe;
-        }
-    }
-
-    intmax_t result = unshare_ns(CLONE_NEWUSER | flags, self_name);
-    if (result != EXECUTION_SUCCESS) {
-        ret = (EXECUTION_FAILURE);
-        goto cleanup_pipe;
-    }
-
-    do {
-        result = write(arg.pipefd[1], "1", sizeof(char));
-    } while (result == -1 && errno == EINTR);
-    if (result == -1) {
-        warn("%s: write to pipe %d failed", self_name, arg.pipefd[1]);
-        ret = 3;
-        goto cleanup_pipe;
-    }
-
-    int wstatus;
-    if (waitpid(pid, &wstatus, 0) != -1) {
-        if (WIFEXITED(wstatus)) {
-            if (WEXITSTATUS(wstatus) != 0)
-                ret = 3;
-        } else
-            ret = 3;
-    } else {
-        warn("%s: waitpid %d failed", self_name, pid);
-        ret = 3;
-    }
-
-cleanup_pipe:
-    for (int i = 0; i != 2; ++i)
-        if (close(arg.pipefd[i]) == -1 && errno != EINTR) {
-            warn("%s: close %d failed", self_name, arg.pipefd[i]);
-            if (ret == EXECUTION_SUCCESS)
-                ret = (EXECUTION_FAILURE);
-        }
-
-    return (EXECUTION_SUCCESS);
-}
-PUBLIC struct builtin create_ns_struct = {
-    "create_ns",       /* builtin name */
-    create_ns_builtin, /* function implementing the builtin */
-    BUILTIN_ENABLED,               /* initial flags for builtin */
-    (char*[]){
-        "create_ns creates user namespace using unshare_ns and creates uid_map and gid_map.",
-        "If options are passed, more namespace are created according to doc of unshare_ns.",
-        "",
-        "count... must not be 0.",
-        "",
-        "create_userns would map [loweruid, loweruid + count) from parent user namespace",
-        "into [uid, uid + count) in the new user namespace.",
-        "",
-        "Same goes for gid_map",
-        "",
-        "This function would fork and exec newuidmap and newgidmap in the parent namespace to fullfill",
-        "any valid uid_map and gid_map defined in /etc/subuid and /etc/subgid.",
-        "",
-        "Returns 0 if succeeds,",
-        "Returns 1 if failed before namespace is created",
-        "Returns 2 if wrong usage",
-        "Returns 3 if failed after namespace is created",
-        (char*) NULL
-    },                            /* array of long documentation strings. */
-    "create_ns [-CINMpU] [ uid_map: uid loweruid count [uid loweruid count [...]]] "
-                        "[ gid_map: gid loweruid count [gid loweruid count [...]]]",
-    0                             /* reserved for internal use */
-};
-
 int remount(const char *dest, unsigned long flags, const char *data, const char *fname)
 {
     if (mount(NULL, dest, NULL, flags | MS_REMOUNT, data) == -1) {
@@ -1261,8 +1139,6 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "unshare_ns", .flags = 0 },
         { .word = "setns", .flags = 0 },
         { .word = "chroot", .flags = 0 },
-
-        { .word = "create_userns", .flags = 0 },
 
         { .word = "bind_mount", .flags = 0 },
         { .word = "remount", .flags = 0 },
