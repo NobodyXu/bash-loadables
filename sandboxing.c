@@ -284,6 +284,7 @@ PUBLIC struct builtin setns_struct = {
         "PID 1 of the new PID namespace and this process won't be able to fork again.",
         "",
         "Check 'help clone_ns' for more information on how to use the flags.",
+        "Check manpage for setns(2) for behavior of this function.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "setns [-CINMPuU] <int> fd",        /* usage synopsis; becomes short_doc */
