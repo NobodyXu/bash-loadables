@@ -443,6 +443,61 @@ PUBLIC struct builtin bind_mount_struct = {
     0                             /* reserved for internal use */
 };
 
+/**
+ * @param *flags, *recursive must be initialized to 0.
+ * @param *data must be initialized to NULL.
+ */
+int mount_getopt(WORD_LIST **list, unsigned long *flags, unsigned long *recursive, const char **data,
+                 const char *fname)
+{
+    reset_internal_getopt();
+    for (int opt; (opt = internal_getopt(*list, "o:O:R")) != -1; ) {
+        if (opt == 'O') {
+            if (*data != NULL) {
+                warnx("%s: '-O' option is specified at least twice", fname);
+                return (EX_USAGE);
+            } else
+                *data = list_optarg;
+        } else {
+            int result = bind_mount_parseopt(opt, flags, recursive, fname);
+            if (result != EXECUTION_SUCCESS)
+                return result;
+        }
+    }
+    *list = loptend;
+
+    return (EXECUTION_SUCCESS);
+}
+int remount_builtin(WORD_LIST *list)
+{
+    const char *self_name = "remount";
+
+    const char *data = NULL;
+    unsigned long flags = 0;
+    unsigned long recursive = 0;
+
+    int result = mount_getopt(&list, &flags, &recursive, &data, self_name);
+    if (result != (EXECUTION_SUCCESS))
+        return result;
+
+    const char *paths[1];
+    if (to_argv(list, 1, paths) == -1)
+        return (EX_USAGE);
+
+    return remount(paths[0], flags | (recursive & MS_REC), data, self_name);
+}
+PUBLIC struct builtin remount_struct = {
+    "remount",       /* builtin name */
+    remount_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "remount remounts dest according to options given.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "remount [-R] [-o rdonly,noexec,nosuid,nodev] [-O options,...] dest",        
+    0                             /* reserved for internal use */
+};
+
 int make_inaccessible_builtin_impl(WORD_LIST *list, const char *tmp_path)
 {
     const unsigned long flags = MS_RDONLY | MS_NOEXEC | MS_NOSUID | MS_NODEV;
@@ -580,21 +635,11 @@ int make_accessible_under_builtin(WORD_LIST *list)
     unsigned long flags = 0;
     unsigned long recursive = 0;
 
-    reset_internal_getopt();
-    for (int opt; (opt = internal_getopt(list, "o:O:R")) != -1; ) {
-        if (opt == 'O') {
-            if (data != NULL) {
-                warnx("%s: '-O' option is specified at least twice", self_name);
-                return (EX_USAGE);
-            } else
-                data = list_optarg;
-        } else {
-            int result = bind_mount_parseopt(opt, &flags, &recursive, self_name);
-            if (result != EXECUTION_SUCCESS)
-                return result;
-        }
+    {
+        int result = mount_getopt(&list, &flags, &recursive, &data, self_name);
+        if (result != (EXECUTION_SUCCESS))
+            return result;
     }
-    list = loptend;
 
     const char *dest;
     if (readin_args(&list, 1, &dest) != 1 || list == NULL) {
@@ -884,6 +929,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "chroot", .flags = 0 },
 
         { .word = "bind_mount", .flags = 0 },
+        { .word = "remount", .flags = 0 },
         { .word = "make_inaccessible", .flags = 0 },
         { .word = "make_accessible_under", .flags = 0 },
         { .word = "mount_pseudo", .flags = 0 },
