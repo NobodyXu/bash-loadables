@@ -330,6 +330,104 @@ PUBLIC struct builtin chroot_struct = {
     0                             /* reserved for internal use */
 };
 
+/**
+ * @param cnt > 0
+ */
+int writefile(const char *pathname, const char *content, size_t cnt, const char *fname)
+{
+    int fd;
+    do {
+        fd = open(pathname, O_WRONLY);
+    } while (fd == -1 && errno == EINTR);
+    if (fd == -1) {
+        warn("%s: open %s failed", fname, pathname);
+        return -1;
+    }
+
+    int ret = 0;
+
+    do {
+        ssize_t result = write(fd, content, min_unsigned(cnt, SSIZE_MAX));
+        if (result == -1) {
+            if (errno == EINTR)
+                continue;
+            warn("%s: write to %s failed", fname, pathname);
+            ret = -1;
+            goto close_fd;
+        }
+        cnt -= result;
+        content += result;
+    } while (cnt > 0);
+ 
+close_fd:
+    if (close(fd) == -1 && errno != EINTR) {
+        warn("%s: close %d failed", fname, fd);
+        ret = -1;
+    }
+
+    return ret;
+}
+#define WRITEFILE(pathname, content, cnt)                         \
+    if (writefile((pathname), (content), (cnt), self_name) == -1) \
+        return (EXECUTION_FAILURE)
+
+int unpriv_map_for_userns_builtin(WORD_LIST *list)
+{
+    const char *self_name = "unpriv_map_for_userns";
+
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    const char* argv[2];
+
+    uid_t start_uid = 0;
+    gid_t start_gid = 0;
+
+    _Static_assert(sizeof(gid_t) == sizeof(uint32_t), "not supported!");
+    _Static_assert((gid_t) -1 > 0, "not supported!");
+
+    _Static_assert(sizeof(uid_t) == sizeof(uint32_t), "not supported!");
+    _Static_assert((uid_t) -1 > 0, "not supported!");
+
+    switch (to_argv_opt(list, 0, 2, argv)) {
+        case -1:
+            builtin_usage();
+            return (EX_USAGE);
+
+        case 2:
+            if (str2id(argv[1], &start_gid, self_name, 1) == -1)
+                return (EX_USAGE);
+        case 1:
+            if (str2id(argv[0], &start_uid, self_name, 0) == -1)
+                return (EX_USAGE);
+
+        case 0:
+            break;
+    }
+
+    uid_t euid = geteuid();
+    gid_t egid = getegid();
+
+    WRITEFILE("/proc/self/setgroups", "deny\n", 5);
+
+    ;
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin unpriv_map_for_userns_struct = {
+    "unpriv_map_for_userns",       /* builtin name */
+    unpriv_map_for_userns_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "Map only euid and egid into this user namespace and disallow setgroups.",
+        "",
+        "If start_for_uid or start_for_gid is not given, it is default to 0.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "unpriv_map_for_userns [start_for_uid [start_for_gid]]",        /* usage synopsis; becomes short_doc */
+    0                             /* reserved for internal use */
+};
+
 int remount(const char *dest, unsigned long flags, const char *data, const char *fname)
 {
     if (mount(NULL, dest, NULL, flags | MS_REMOUNT, data) == -1) {
@@ -1144,6 +1242,8 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "unshare_ns", .flags = 0 },
         { .word = "setns", .flags = 0 },
         { .word = "chroot", .flags = 0 },
+
+        { .word = "unpriv_map_for_userns", .flags = 0 },
 
         { .word = "bind_mount", .flags = 0 },
         { .word = "remount", .flags = 0 },
