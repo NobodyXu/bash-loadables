@@ -73,7 +73,7 @@ void* get_pg_impl(void* (*get_f)(const char*), const char *name,
 
     return ret;
 }
-int parse_id_impl(unsigned *id, const char *name, void* (*get_f)(const char*), size_t offset, 
+int parse_id_impl(uint32_t *id, const char *name, void* (*get_f)(const char*), size_t offset, 
                   /* meta info for printing on error */
                   const char *function_name, const char *name_type, const char *id_type)
 {
