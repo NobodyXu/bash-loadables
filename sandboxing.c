@@ -860,6 +860,45 @@ PUBLIC struct builtin capng_clear_struct = {
     0                             /* reserved for internal use */
 };
 
+int capng_fill_builtin(WORD_LIST *list)
+{
+    const char *self_name = "capng_fill";
+
+    typedef void (*capng_fill_t)(capng_select_t);
+
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    const char* argv[1];
+    if (to_argv(list, 1, argv) == -1)
+        return (EX_USAGE);
+
+    capng_select_t set;
+    if (parse_capng_select(argv[0], 0, &set, self_name) == -1)
+        return (EX_USAGE);
+
+    capng_fill_t capng_fill_p = load_libcap_ng_sym(self_name);
+
+    capng_fill_p(set);
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin capng_fill_struct = {
+    "capng_fill",       /* builtin name */
+    capng_fill_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "CAPS standss for tranditional capabilities.",
+        "BOUNDS stands for the bounding set.",
+        "BOTH means both CAPS and BOUNDS.",
+        "",
+        "Check manpage for capabilities(7) for more info.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "capng_fill [CAPS/BOUNDS/BOTH]",
+    0                             /* reserved for internal use */
+};
+
 int capng_apply_builtin(WORD_LIST *list)
 {
     const char *self_name = "capng_apply";
@@ -1113,6 +1152,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "mount_pseudo", .flags = 0 },
 
         { .word = "capng_clear", .flags = 0 },
+        { .word = "capng_fill", .flags = 0 },
         { .word = "capng_apply", .flags = 0 },
         { .word = "capng_update", .flags = 0 },
         { .word = "capng_have_capability", .flags = 0 },
