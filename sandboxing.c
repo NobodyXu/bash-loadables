@@ -35,6 +35,7 @@
 #include <cap-ng.h>
 
 static void *libcapng_handle;
+static void *libseccomp_handle;
 
 void* load_dynlib(const char *filename)
 {
@@ -43,6 +44,15 @@ void* load_dynlib(const char *filename)
         warnx("failed to load %s: %s", filename, dlerror());
     return handle;
 }
+void unload_dynlib_impl(void *handle, const char *handle_name)
+{
+    if (handle != NULL) {
+        if (dlclose(handle) != 0)
+            warnx("dlclose %s failed: %s", handle_name, dlerror());
+    }
+}
+#define unload_dynlib(handle) unload_dynlib_impl((handle), # handle)
+
 void* load_sym_impl(void *handle, const char *symbol, const char *dyn_name)
 {
     void *sym_addr = dlsym(handle, symbol);
@@ -59,6 +69,7 @@ void* load_sym_impl(void *handle, const char *symbol, const char *dyn_name)
 PUBLIC int sandboxing_builtin_load(char *name)
 {
     libcapng_handle = NULL;
+    libseccomp_handle = NULL;
     return (1);
 }
 
@@ -67,10 +78,8 @@ PUBLIC int sandboxing_builtin_load(char *name)
  */
 PUBLIC void sandboxing_builtin_unload(char *name)
 {
-    if (libcapng_handle != NULL) {
-        if (dlclose(libcapng_handle) != 0)
-            warnx("%s(libcapng_handle) failed: %s", "dlclose", dlerror());
-    }
+    unload_dynlib(libcapng_handle);
+    unload_dynlib(libseccomp_handle);
 }
 
 int enable_no_new_privs_strict_builtin(WORD_LIST *list)
@@ -1123,6 +1132,25 @@ PUBLIC struct builtin capng_have_capabilities_struct = {
     "capng_have_capabilities [CAPS/BOUNDS/BOTH]",
     0                             /* reserved for internal use */
 };
+
+static const char *libseccomp_lib_name = "libseccomp.so";
+void* load_libseccomp_sym_impl(const char *symbol)
+{
+    const char *dyn_name = libseccomp_lib_name;
+
+    if (libseccomp_handle == NULL) {
+        if ((libseccomp_handle = load_dynlib(dyn_name)) == NULL)
+            return NULL;
+    }
+    return load_sym_impl(libseccomp_handle, symbol, dyn_name);
+}
+#define load_libseccomp_sym(sym)                    \
+    ({                                              \
+        void *ret = load_libseccomp_sym_impl((sym));\
+        if (ret == NULL)                            \
+            return (EXECUTION_FAILURE);             \
+        ret;                                        \
+     })
 
 int sandboxing_builtin(WORD_LIST *_)
 {
