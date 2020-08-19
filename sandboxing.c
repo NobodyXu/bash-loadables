@@ -417,10 +417,10 @@ int unpriv_map_for_userns_builtin(WORD_LIST *list)
         int cnt = snprintf(buffer, sizeof(buffer), "%" PRIu32 " %" PRIu32 " 1\n", 
                                                     start_ids[i], eids[i]);
         if (cnt == EOF) {
-            warn("%s: snprintf failed for %s", self_name, path);
+            warn("%s: %s failed for %s", self_name, "snprintf", path);
             return (EXECUTION_FAILURE);
         } else if (cnt > sizeof(buffer) - 1) {
-            warn("%s: snprintf would overflow for %s", self_name, path);
+            warn("%s: %s would overflow for %s", self_name, "snprintf", path);
             return (EXECUTION_FAILURE);
         }
         WRITEFILE(path, buffer, cnt);
