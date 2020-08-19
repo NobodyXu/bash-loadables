@@ -37,13 +37,6 @@
 static void *libcapng_handle;
 static void *libseccomp_handle;
 
-void* load_dynlib(const char *filename)
-{
-    void *handle = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
-    if (handle == NULL)
-        warnx("failed to load %s: %s", filename, dlerror());
-    return handle;
-}
 void unload_dynlib_impl(void *handle, const char *handle_name)
 {
     if (handle != NULL) {
@@ -53,12 +46,27 @@ void unload_dynlib_impl(void *handle, const char *handle_name)
 }
 #define unload_dynlib(handle) unload_dynlib_impl((handle), # handle)
 
+void* load_dynlib(const char *filename)
+{
+    void *handle = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
+    if (handle == NULL)
+        warnx("failed to load %s: %s", filename, dlerror());
+    return handle;
+}
 void* load_sym_impl(void *handle, const char *symbol, const char *dyn_name)
 {
     void *sym_addr = dlsym(handle, symbol);
     if (sym_addr == NULL)
         warnx("failed to load %s from %s: %s", symbol, dyn_name, dlerror());
     return sym_addr;
+}
+void* load_sym(void **handle, const char *dyn_name, const char *symbol)
+{
+    if (*handle == NULL) {
+        if ((*handle = load_dynlib(dyn_name)) == NULL)
+            return NULL;
+    }
+    return load_sym_impl(*handle, symbol, dyn_name);
 }
 
 /**
@@ -817,19 +825,9 @@ PUBLIC struct builtin mount_pseudo_struct = {
 };
 
 static const char *libcap_ng_lib_name = "libcap-ng.so";
-void* load_libcap_ng_sym_impl(const char *symbol)
-{
-    const char *dyn_name = libcap_ng_lib_name;
-
-    if (libcapng_handle == NULL) {
-        if ((libcapng_handle = load_dynlib(dyn_name)) == NULL)
-            return NULL;
-    }
-    return load_sym_impl(libcapng_handle, symbol, dyn_name);
-}
 #define load_libcap_ng_sym(sym)                     \
     ({                                              \
-        void *ret = load_libcap_ng_sym_impl((sym)); \
+        void *ret = load_sym(&libcapng_handle, libcap_ng_lib_name, (sym)); \
         if (ret == NULL)                            \
             return (EXECUTION_FAILURE);             \
         ret;                                        \
@@ -1134,19 +1132,9 @@ PUBLIC struct builtin capng_have_capabilities_struct = {
 };
 
 static const char *libseccomp_lib_name = "libseccomp.so";
-void* load_libseccomp_sym_impl(const char *symbol)
-{
-    const char *dyn_name = libseccomp_lib_name;
-
-    if (libseccomp_handle == NULL) {
-        if ((libseccomp_handle = load_dynlib(dyn_name)) == NULL)
-            return NULL;
-    }
-    return load_sym_impl(libseccomp_handle, symbol, dyn_name);
-}
 #define load_libseccomp_sym(sym)                    \
     ({                                              \
-        void *ret = load_libseccomp_sym_impl((sym));\
+        void *ret = load_sym(&libseccomp_handle, libseccomp_lib_name, (sym)); \
         if (ret == NULL)                            \
             return (EXECUTION_FAILURE);             \
         ret;                                        \
