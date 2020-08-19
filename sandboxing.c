@@ -587,6 +587,10 @@ int bind_to_dir(WORD_LIST *list, char **tmp_path, const size_t tmp_len, unsigned
             return (EX_USAGE);
         }
         size_t bind_len = strlen(bind_name);
+        if (bind_len == 0) {
+            warnx("%s: the %zu path points to %s", self_name, i, "a path with empty basename");
+            return (EX_USAGE);
+        }
 
         if (stat(list->word->word, &statbuf) == -1) {
             warn("%s: failed to stat the %zu path", self_name, i);
