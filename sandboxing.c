@@ -824,10 +824,10 @@ PUBLIC struct builtin mount_pseudo_struct = {
     0                             /* reserved for internal use */
 };
 
-static const char *libcap_ng_lib_name = "libcap-ng.so";
-#define load_libcap_ng_sym(sym)                     \
+static const char *libcapng_lib_name = "libcap-ng.so";
+#define load_libcapng_sym(sym)                     \
     ({                                              \
-        void *ret = load_sym(&libcapng_handle, libcap_ng_lib_name, (sym)); \
+        void *ret = load_sym(&libcapng_handle, libcapng_lib_name, (sym)); \
         if (ret == NULL)                            \
             return (EXECUTION_FAILURE);             \
         ret;                                        \
@@ -878,7 +878,7 @@ int capng_clear_builtin(WORD_LIST *list)
 
     capng_select_t set = readin_capng_select_only(list);
 
-    capng_clear_t capng_clear_p = load_libcap_ng_sym(self_name);
+    capng_clear_t capng_clear_p = load_libcapng_sym(self_name);
 
     capng_clear_p(set);
 
@@ -908,7 +908,7 @@ int capng_fill_builtin(WORD_LIST *list)
 
     capng_select_t set = readin_capng_select_only(list);
 
-    capng_fill_t capng_fill_p = load_libcap_ng_sym(self_name);
+    capng_fill_t capng_fill_p = load_libcapng_sym(self_name);
 
     capng_fill_p(set);
 
@@ -938,7 +938,7 @@ int capng_apply_builtin(WORD_LIST *list)
 
     capng_select_t set = readin_capng_select_only(list);
 
-    capng_apply_t capng_apply_p = load_libcap_ng_sym(self_name);
+    capng_apply_t capng_apply_p = load_libcapng_sym(self_name);
 
     if (capng_apply_p(set) == -1) {
         warnx("%s failed", self_name);
@@ -989,7 +989,7 @@ int capng_update_builtin(WORD_LIST *list)
         return (EX_USAGE);
     }
 
-    capng_name_to_cap_t capng_name_to_cap_p = load_libcap_ng_sym("capng_name_to_capability");
+    capng_name_to_cap_t capng_name_to_cap_p = load_libcapng_sym("capng_name_to_capability");
 
     const int cap = capng_name_to_cap_p(argv[1]);
     if (cap < 0) {
@@ -997,7 +997,7 @@ int capng_update_builtin(WORD_LIST *list)
         return (EX_USAGE);
     }
 
-    capng_update_t capng_update_p = load_libcap_ng_sym(self_name);
+    capng_update_t capng_update_p = load_libcapng_sym(self_name);
 
     if (capng_update_p(action, type, cap) == -1) {
         warnx("%s failed", self_name);
@@ -1055,7 +1055,7 @@ int capng_have_capability_builtin(WORD_LIST *list)
         return (EX_USAGE);
     }
 
-    capng_name_to_cap_t capng_name_to_cap_p = load_libcap_ng_sym("capng_name_to_capability");
+    capng_name_to_cap_t capng_name_to_cap_p = load_libcapng_sym("capng_name_to_capability");
 
     const int cap = capng_name_to_cap_p(argv[1]);
     if (cap < 0) {
@@ -1063,7 +1063,7 @@ int capng_have_capability_builtin(WORD_LIST *list)
         return (EX_USAGE);
     }
 
-    capng_have_cap_t capng_have_cap_p = load_libcap_ng_sym(self_name);
+    capng_have_cap_t capng_have_cap_p = load_libcapng_sym(self_name);
 
     return !capng_have_cap_p(type, cap);
 }
@@ -1088,7 +1088,7 @@ int capng_have_capabilities_builtin(WORD_LIST *list)
 
     capng_select_t set = readin_capng_select_only(list);
 
-    capng_have_caps_t capng_have_caps_p = load_libcap_ng_sym(self_name);
+    capng_have_caps_t capng_have_caps_p = load_libcapng_sym(self_name);
 
     switch (capng_have_caps_p(set)) {
         case CAPNG_FAIL:
@@ -1105,7 +1105,7 @@ int capng_have_capabilities_builtin(WORD_LIST *list)
             return 0;
 
         default:
-            warnx("%s: %s from %s returns unknown return value", self_name, self_name, libcap_ng_lib_name);
+            warnx("%s: %s from %s returns unknown return value", self_name, self_name, libcapng_lib_name);
             return (EXECUTION_FAILURE);
     }
 }
