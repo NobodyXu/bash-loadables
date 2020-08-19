@@ -416,7 +416,7 @@ int unpriv_map_for_userns_builtin(WORD_LIST *list)
     for (int i = 0; i != 2; ++i) {
         int cnt = snprintf(buffer, sizeof(buffer), "%" PRIu32 " %" PRIu32 " 1\n", 
                                                     start_ids[i], eids[i]);
-        if (cnt == -1) {
+        if (cnt == EOF) {
             warn("%s: snprintf failed for %s", self_name, path);
             return (EXECUTION_FAILURE);
         } else if (cnt > sizeof(buffer) - 1) {
