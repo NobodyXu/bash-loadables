@@ -194,23 +194,6 @@ int str2mode(const char *str, mode_t *mode)
     return 0;
 }
 
-int str2id(const char *str, uint32_t *integer, const char *fname, size_t i)
-{
-    switch (str2uint32(str, integer)) {
-        case -1:
-            warnx("%s: the %zu arg %s", fname, i + 1, "isn't an integer");
-            return -1;
-
-        case -2:
-            warnx("%s: the %zu arg %s", fname, i + 1, "is out of range");
-            return -1;
-
-        case 0:
-            break;
-    }
-    return 0;
-}
-
 /**
  * @return number of args read in.
  */
