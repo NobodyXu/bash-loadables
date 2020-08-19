@@ -885,12 +885,10 @@ int capng_clear_builtin(WORD_LIST *list)
 {
     const char *self_name = "capng_clear";
 
-    typedef void (*capng_clear_t)(capng_select_t);
-
     capng_select_t set = readin_capng_select_only(list);
 
+    typedef void (*capng_clear_t)(capng_select_t);
     capng_clear_t capng_clear_p = load_libcapng_sym(self_name);
-
     capng_clear_p(set);
 
     return (EXECUTION_SUCCESS);
@@ -915,12 +913,10 @@ int capng_fill_builtin(WORD_LIST *list)
 {
     const char *self_name = "capng_fill";
 
-    typedef void (*capng_fill_t)(capng_select_t);
-
     capng_select_t set = readin_capng_select_only(list);
 
+    typedef void (*capng_fill_t)(capng_select_t);
     capng_fill_t capng_fill_p = load_libcapng_sym(self_name);
-
     capng_fill_p(set);
 
     return (EXECUTION_SUCCESS);
@@ -945,12 +941,10 @@ int capng_apply_builtin(WORD_LIST *list)
 {
     const char *self_name = "capng_apply";
 
-    typedef int (*capng_apply_t)(capng_select_t);
-
     capng_select_t set = readin_capng_select_only(list);
 
+    typedef int (*capng_apply_t)(capng_select_t);
     capng_apply_t capng_apply_p = load_libcapng_sym(self_name);
-
     if (capng_apply_p(set) == -1) {
         warnx("%s failed", self_name);
         return (EXECUTION_FAILURE);
