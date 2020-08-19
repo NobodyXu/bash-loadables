@@ -12,11 +12,14 @@
 
 #include "bash/builtins/builtext.h"
 
+#include <strings.h>
+
 #include <limits.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include "errnos.h"
 #include <err.h>
 
 #define VLA_MAXLEN (50 * sizeof(void*))
@@ -295,5 +298,32 @@ int parse_flag(intmax_t *result, WORD_LIST **list, const char *opts, const intma
             return ret;             \
         result;                     \
     })
+
+/**
+ * @param arg should be in uppercase
+ * @return -1 on failure and print err msg to stderr, otherwise errno.
+ */
+int parse_errno(const char *arg, size_t i, const char *fname)
+{
+    if (arg[0] != 'E') {
+        warnx("%s: the %zu arg isn't errno", fname, i);
+        return -1;
+    }
+    ++arg;
+
+    typedef int (*cmp_t)(const void*, const void*);
+
+    const size_t size = sizeof(const char*);
+    const size_t nmemb = sizeof(errno_strs) / size;
+    cmp_t cmp = (cmp_t) strcasecmp;
+
+    const char* const *result = bsearch(arg, errno_strs, nmemb, size, cmp);
+    if (result == NULL) {
+        warnx("%s: the %zu arg isn't errno", fname, i);
+        return -1;
+    }
+
+    return errnos[result - errno_strs];
+}
 
 #endif
