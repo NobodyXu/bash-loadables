@@ -33,9 +33,12 @@
 #include <dlfcn.h>
 
 #include <cap-ng.h>
+#include <seccomp.h>
 
 static void *libcapng_handle;
 static void *libseccomp_handle;
+
+static scmp_filter_ctx seccomp_ctx;
 
 void unload_dynlib_impl(void *handle, const char *handle_name)
 {
@@ -78,15 +81,23 @@ PUBLIC int sandboxing_builtin_load(char *name)
 {
     libcapng_handle = NULL;
     libseccomp_handle = NULL;
+    seccomp_ctx = NULL;
     return (1);
 }
 
+int call_seccomp_release(scmp_filter_ctx ctx);
 /**
  * Called when `template' is disabled.
  */
 PUBLIC void sandboxing_builtin_unload(char *name)
 {
     unload_dynlib(libcapng_handle);
+    if (seccomp_ctx != NULL) {
+        if (libseccomp_handle != NULL)
+            call_seccomp_release(seccomp_ctx);
+        else
+            warnx("sandboxing_builtin_unload: seccomp_ctx != NULL but %s == NULL", "libseccomp_handle");
+    }
     unload_dynlib(libseccomp_handle);
 }
 
@@ -1139,6 +1150,14 @@ static const char *libseccomp_lib_name = "libseccomp.so";
             return (EXECUTION_FAILURE);             \
         ret;                                        \
      })
+
+int call_seccomp_release(scmp_filter_ctx ctx)
+{
+    typedef void (*seccoomp_rel_t)(scmp_filter_ctx);
+    seccoomp_rel_t seccoomp_rel_p = load_libseccomp_sym("seccomp_release");
+    seccoomp_rel_p(ctx);
+    return (EXECUTION_SUCCESS);
+}
 
 int sandboxing_builtin(WORD_LIST *_)
 {
