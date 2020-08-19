@@ -1153,6 +1153,44 @@ int call_seccomp_release(scmp_filter_ctx ctx)
     return (EXECUTION_SUCCESS);
 }
 
+int seccomp_init_builtin(WORD_LIST *list)
+{
+    const char *self_name = "seccomp_init";
+
+    typedef void (*seccomp_init_t)(uint32_t);
+    typedef void (*seccomp_reset_t)(scmp_filter_ctx, uint32_t);
+
+    ;
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin seccomp_init_struct = {
+    "seccomp_init",       /* builtin name */
+    seccomp_init_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "Valid def_action values:",
+        " - \"KILL\": terminate the thread with SIGSYS when a syscall is made against filter rule.",
+        " - \"KILL_PROCESS\": terminate the process with SIGSYS when a syscall is made against filter rule.",
+        " - \"TRAP\": send SIGSYS to the thread when a syscall is made against filter rule.",
+        " - \"ERRNO:errno\": The syscall will return errno.",
+        " - \"LOG\": The syscall made against filter rule will be logged.",
+        " - \"ALLOW\": have no effect on the thread which made a syscall against seccomp filter",
+        "",
+        "seccomp_init must be called before any other seccomp_* is called.",
+        "",
+        "If seccomp_init is called again, then it will releases the existing filter and",
+        "reinitialize it with the given def_action.",
+        "",
+        "Example:",
+        "",
+        "seccomp_init ERRNO:ENOSYS",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "seccomp_init def_action",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
