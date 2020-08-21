@@ -1273,6 +1273,8 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "capng_update", .flags = 0 },
         { .word = "capng_have_capability", .flags = 0 },
         { .word = "capng_have_capabilities", .flags = 0 },
+
+        { .word = "seccomp_init", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
