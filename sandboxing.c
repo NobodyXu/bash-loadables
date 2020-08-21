@@ -1243,17 +1243,97 @@ PUBLIC struct builtin seccomp_init_struct = {
     0                             /* reserved for internal use */
 };
 
+int get_arch(WORD_LIST **list, uint32_t *arch, const char *fname)
+{
+    typedef uint32_t (*seccomp_arch_native_t)();
+    typedef uint32_t (*seccomp_arch_resolve_name_t)(const char*);
+
+    int has_set_arch = 0;
+
+    reset_internal_getopt();
+    for (int opt; (opt = internal_getopt(*list, "a:")) != -1; ) {
+        switch (opt) {
+            case 'a':
+            {
+                const char *sym = "seccomp_arch_resolve_name";
+                seccomp_arch_resolve_name_t seccomp_arch_resolve_name_p = load_libseccomp_sym(sym);
+
+                *arch = seccomp_arch_resolve_name_p(list_optarg);
+                if (*arch == 0) {
+                    warnx("%s: get_arch: Args provided in option '-a' isn't an architecture", fname);
+                    return (EX_USAGE);
+                }
+
+                has_set_arch = 1;
+            }
+            break;
+
+            CASE_HELPOPT;
+
+            default:
+                builtin_usage();
+                return (EX_USAGE);
+        }
+    }
+
+    if (!has_set_arch) {
+        seccomp_arch_native_t seccomp_arch_native_p = load_libseccomp_sym("seccomp_arch_native");
+        *arch = seccomp_arch_native_p();
+    }
+
+    *list = loptend;
+
+    return (EXECUTION_SUCCESS);
+}
+int seccomp_resolve_syscall(uint32_t arch, const char *arg, int *syscall_num, size_t i, const char *fname)
+{
+    typedef int (*resolver_t)(uint32_t, const char*);
+    resolver_t seccomp_syscall_resolver_p = load_libseccomp_sym("seccomp_syscall_resolve_name_arch");
+
+    *syscall_num = seccomp_syscall_resolver_p(arch, arg);
+    if (*syscall_num == __NR_SCMP_ERROR) {
+        warnx("%s: Invalid syscall in %zu arg", fname, i + 1);
+        return (EX_USAGE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
 int seccomp_rule_add_builtin(WORD_LIST *list)
 {
     const char *self_name = "seccomp_rule_add";
 
-    typedef int (*seccomp_rule_add_arr_t)(scmp_filter_ctx, uint32_t, int, unsigned, const struct scmp_arg_cmp*);
+    uint32_t arch;
+    {
+        int result = get_arch(&list, &arch, self_name);
+        if (result != (EXECUTION_SUCCESS))
+            return result;
+    }
 
-    const char* argv[1];
-    if (to_argv(list, 1, argv) == -1)
+    const char* argv[2];
+    if (readin_args(&list, 2, argv) != 2 || list == NULL) {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    uint32_t actions;
+    if (parse_action(argv[0], &actions, self_name, 0) == -1)
         return (EX_USAGE);
 
+    int syscall_num;
+    {
+        int result = seccomp_resolve_syscall(arch, argv[1], &syscall_num, 1, self_name);
+        if (result != (EXECUTION_SUCCESS))
+            return result;
+    }
+
+    int argc = list_length(list);
+
+    typedef int (*seccomp_rule_addv_t)(scmp_filter_ctx, uint32_t, int, unsigned, const struct scmp_arg_cmp*);
+    seccomp_rule_addv_t add_rulev_p = load_libseccomp_sym("seccomp_rule_add_array");
+
     int ret = (EXECUTION_SUCCESS);
+
+    ;
 
     return ret;
 }
