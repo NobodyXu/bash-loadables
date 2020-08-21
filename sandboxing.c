@@ -1162,7 +1162,7 @@ int parse_action(const char *arg, uint32_t *action, const char *fname, size_t i)
     else if (strcasecmp(arg, "TRAP") == 0)
         *action = SCMP_ACT_TRAP;
     else if (strncasecmp(arg, "ERRNO:", 6) == 0) {
-        int errno_v = parse_errno(arg + 6, i, fname);
+        int errno_v = parse_errno(arg + 6, i + 1, fname);
         if (errno_v == -1) {
             builtin_usage();
             return -1;
@@ -1173,7 +1173,7 @@ int parse_action(const char *arg, uint32_t *action, const char *fname, size_t i)
     else if (strcasecmp(arg, "ALLOW") == 0)
         *action = SCMP_ACT_ALLOW;
     else {
-        warnx("%s: parse_action: Invalid %zu arg", fname, i);
+        warnx("%s: parse_action: Invalid %zu arg", fname, i + 1);
         builtin_usage();
         return -1;
     }
