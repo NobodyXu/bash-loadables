@@ -1234,6 +1234,31 @@ PUBLIC struct builtin seccomp_init_struct = {
     0                             /* reserved for internal use */
 };
 
+int seccomp_rule_add_builtin(WORD_LIST *list)
+{
+    const char *self_name = "seccomp_rule_add";
+
+    typedef int (*seccomp_rule_add_arr_t)(scmp_filter_ctx, uint32_t, int, unsigned, const struct scmp_arg_cmp*);
+
+    const char* argv[1];
+    if (to_argv(list, 1, argv) == -1)
+        return (EX_USAGE);
+
+    int ret = (EXECUTION_SUCCESS);
+
+    return ret;
+}
+PUBLIC struct builtin seccomp_rule_add_struct = {
+    "seccomp_rule_add",       /* builtin name */
+    seccomp_rule_add_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "seccomp_rule_add ",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -1275,6 +1300,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "capng_have_capabilities", .flags = 0 },
 
         { .word = "seccomp_init", .flags = 0 },
+        { .word = "seccomp_rule_add", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
