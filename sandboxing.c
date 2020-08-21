@@ -1186,6 +1186,9 @@ int seccomp_init_builtin(WORD_LIST *list)
     typedef scmp_filter_ctx (*seccomp_init_t)(uint32_t);
     typedef int             (*seccomp_reset_t)(scmp_filter_ctx, uint32_t);
 
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
     const char* argv[1];
     if (to_argv(list, 1, argv) == -1)
         return (EX_USAGE);
