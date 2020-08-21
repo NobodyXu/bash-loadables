@@ -1153,6 +1153,32 @@ int call_seccomp_release(scmp_filter_ctx ctx)
     return (EXECUTION_SUCCESS);
 }
 
+int parse_action(const char *arg, uint32_t *action, const char *fname, size_t i)
+{
+    if (strcasecmp(arg, "KILL") == 0)
+        *action = SCMP_ACT_KILL;
+    else if (strcasecmp(arg, "KILL_PROCESS") == 0)
+        *action = SCMP_ACT_KILL_PROCESS;
+    else if (strcasecmp(arg, "TRAP") == 0)
+        *action = SCMP_ACT_TRAP;
+    else if (strncasecmp(arg, "ERRNO:", 6) == 0) {
+        int errno_v = parse_errno(arg + 6, i, fname);
+        if (errno_v == -1) {
+            builtin_usage();
+            return -1;
+        }
+        *action = SCMP_ACT_ERRNO(errno_v);
+    } else if (strcasecmp(arg, "LOG") == 0)
+        *action = SCMP_ACT_LOG;
+    else if (strcasecmp(arg, "ALLOW") == 0)
+        *action = SCMP_ACT_ALLOW;
+    else {
+        warnx("%s: parse_action: Invalid %zu arg", fname, i);
+        builtin_usage();
+        return -1;
+    }
+    return 0;
+}
 int seccomp_init_builtin(WORD_LIST *list)
 {
     const char *self_name = "seccomp_init";
@@ -1165,28 +1191,8 @@ int seccomp_init_builtin(WORD_LIST *list)
         return (EX_USAGE);
 
     uint32_t def_actions;
-    if (strcasecmp(argv[0], "KILL") == 0)
-        def_actions = SCMP_ACT_KILL;
-    else if (strcasecmp(argv[0], "KILL_PROCESS") == 0)
-        def_actions = SCMP_ACT_KILL_PROCESS;
-    else if (strcasecmp(argv[0], "TRAP") == 0)
-        def_actions = SCMP_ACT_TRAP;
-    else if (strncasecmp(argv[0], "ERRNO:", 6) == 0) {
-        int errno_v = parse_errno(argv[0] + 6, 0, self_name);
-        if (errno_v == -1) {
-            builtin_usage();
-            return (EX_USAGE);
-        }
-        def_actions = SCMP_ACT_ERRNO(errno_v);
-    } else if (strcasecmp(argv[0], "LOG") == 0)
-        def_actions = SCMP_ACT_LOG;
-    else if (strcasecmp(argv[0], "ALLOW") == 0)
-        def_actions = SCMP_ACT_ALLOW;
-    else {
-        warnx("%s: Invalid 1 arg", self_name);
-        builtin_usage();
+    if (parse_action(argv[0], &def_actions, self_name, 0) == -1)
         return (EX_USAGE);
-    }
 
     int ret = (EXECUTION_SUCCESS);
 
