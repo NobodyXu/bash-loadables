@@ -305,8 +305,10 @@ int parse_flag(intmax_t *result, WORD_LIST **list, const char *opts, const intma
  */
 int parse_errno(const char *arg, size_t i, const char *fname)
 {
+    const char *self_name = "parse_errno";
+
     if (arg[0] != 'E') {
-        warnx("%s: the %zu arg isn't errno", fname, i);
+        warnx("%s: %s: the %zu arg isn't errno", fname, self_name, i);
         return -1;
     }
     ++arg;
@@ -319,7 +321,7 @@ int parse_errno(const char *arg, size_t i, const char *fname)
 
     const char* const *result = bsearch(arg, errno_strs, nmemb, size, cmp);
     if (result == NULL) {
-        warnx("%s: the %zu arg isn't errno", fname, i);
+        warnx("%s: %s: the %zu arg isn't errno", fname, self_name, i);
         return -1;
     }
 
