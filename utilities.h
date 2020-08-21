@@ -317,7 +317,7 @@ int parse_errno(const char *arg, size_t i, const char *fname)
 
     const size_t size = sizeof(const char*);
     const size_t nmemb = sizeof(errno_strs) / size;
-    cmp_t cmp = (cmp_t) strcasecmp;
+    cmp_t cmp = (cmp_t) strcmp;
 
     const char* const *result = bsearch(arg, errno_strs, nmemb, size, cmp);
     if (result == NULL) {
