@@ -1221,7 +1221,7 @@ PUBLIC struct builtin seccomp_init_struct = {
     seccomp_init_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
-        "Valid default_action values:",
+        "Valid default_action values for syscalls where there isn't a rule for:",
         " - \"KILL\": terminate the thread with SIGSYS when a syscall is made against filter rule.",
         " - \"KILL_PROCESS\": terminate the process with SIGSYS when a syscall is made against filter rule.",
         " - \"TRAP\": send SIGSYS to the thread when a syscall is made against filter rule.",
