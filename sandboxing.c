@@ -1157,8 +1157,8 @@ int seccomp_init_builtin(WORD_LIST *list)
 {
     const char *self_name = "seccomp_init";
 
-    typedef void (*seccomp_init_t)(uint32_t);
-    typedef void (*seccomp_reset_t)(scmp_filter_ctx, uint32_t);
+    typedef scmp_filter_ctx (*seccomp_init_t)(uint32_t);
+    typedef int             (*seccomp_reset_t)(scmp_filter_ctx, uint32_t);
 
     const char* argv[1];
     if (to_argv(list, 1, argv) == -1)
@@ -1188,13 +1188,24 @@ int seccomp_init_builtin(WORD_LIST *list)
         return (EX_USAGE);
     }
 
+    int ret = (EXECUTION_SUCCESS);
+
     if (seccomp_ctx) {
-        ;
+        seccomp_reset_t seccomp_reset_p = load_libseccomp_sym("seccomp_reset");
+        if (seccomp_reset_p(seccomp_ctx, def_actions) != 0) {
+            warnx("%s: %s failed", self_name, "seccomp_reset");
+            ret = (EXECUTION_FAILURE);
+        }
     } else {
-        ;
+        seccomp_init_t seccomp_init_p = load_libseccomp_sym("seccomp_init");
+        seccomp_ctx = seccomp_init_p(def_actions);
+        if (seccomp_ctx == NULL) {
+            warnx("%s: %s failed", self_name, "seccomp_init");
+            ret = (EXECUTION_FAILURE);
+        }
     }
 
-    return (EXECUTION_SUCCESS);
+    return ret;
 }
 PUBLIC struct builtin seccomp_init_struct = {
     "seccomp_init",       /* builtin name */
