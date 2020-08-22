@@ -1111,7 +1111,7 @@ int capng_have_capabilities_builtin(WORD_LIST *list)
             return 0;
 
         default:
-            warnx("%s: %s from %s returns unknown return value", self_name, self_name, libcapng_lib_name);
+            warnx("%s: %s from %s %s", self_name, self_name, libcapng_lib_name, "returns unknown return value");
             return (EXECUTION_FAILURE);
     }
 }
@@ -1316,8 +1316,8 @@ int seccomp_rule_add_builtin(WORD_LIST *list)
         return (EX_USAGE);
     }
 
-    uint32_t actions;
-    if (parse_action(argv[0], &actions, self_name, 0) == -1)
+    uint32_t action;
+    if (parse_action(argv[0], &action, self_name, 0) == -1)
         return (EX_USAGE);
 
     int syscall_num;
@@ -1328,16 +1328,17 @@ int seccomp_rule_add_builtin(WORD_LIST *list)
     }
 
     typedef int (*seccomp_rule_addv_t)(scmp_filter_ctx, uint32_t, int, unsigned, const struct scmp_arg_cmp*);
-    seccomp_rule_addv_t add_rulev_p = load_libseccomp_sym("seccomp_rule_add_array");
+    const char *loaded_fname = "seccomp_rule_add_array";
+    seccomp_rule_addv_t add_rulev_p = load_libseccomp_sym(loaded_fname);
 
     int argc = list_length(list);
 
-    struct scmp_arg_cmp *arg_array;
+    struct scmp_arg_cmp *arg_cmp;
     START_VLA(struct scmp_arg_cmp, argc, arg_array);
 
     int ret = (EXECUTION_SUCCESS);
 
-    for (int i = 3; i != argc; ++i, list = list->next) {
+    for (int i = 0; i != argc; ++i, list = list->next) {
         const char *arg = list->word->word;
 
         uint64_t narg;
@@ -1351,7 +1352,7 @@ int seccomp_rule_add_builtin(WORD_LIST *list)
         int result = sscanf(arg, "A%" PRIu64 "_%" PRIu64 " %2s %" PRIu64 " %n", &narg, &bit, op, &arg1, &n);
 
         if (result == EOF) {
-            warn("%s: sscanf on %d arg failed", self_name, i);
+            warn("%s: sscanf on %d arg failed", self_name, i + 3);
             ret = (EXECUTION_FAILURE);
             goto cleanup;
         } else if (result != 4 || narg > 5 || (bit != 32 && bit != 64)) {
@@ -1360,7 +1361,7 @@ int seccomp_rule_add_builtin(WORD_LIST *list)
                 err_msg = "narg too large";
             else if (bit != 32 && bit != 64)
                 err_msg = "bit is neither 32 nor 64";
-            warnx("%s: Invalid %d arg: %s", self_name, i, err_msg);
+            warnx("%s: Invalid %d arg: %s", self_name, i + 3, err_msg);
             ret = (EX_USAGE);
             goto cleanup;
         }
@@ -1368,7 +1369,7 @@ int seccomp_rule_add_builtin(WORD_LIST *list)
         enum scmp_compare op_enum;
         switch (((int) op[0] << 8) | (int) op[1]) {
             default:
-                warnx("%s: Invalid %d arg: %s", self_name, i, "Invalid operator");
+                warnx("%s: Invalid %d arg: %s", self_name, i + 3, "Invalid operator");
                 ret = (EX_USAGE);
                 goto cleanup;
 
@@ -1401,11 +1402,11 @@ int seccomp_rule_add_builtin(WORD_LIST *list)
                 arg += n;
                 result = sscanf(arg, "== %" PRIu64 " %n", &arg2, &n);
                 if (result == EOF) {
-                    warn("%s: sscanf on %d arg failed", self_name, i);
+                    warn("%s: sscanf on %d arg failed", self_name, i + 3);
                     ret = (EXECUTION_FAILURE);
                     goto cleanup;
                 } else if (result != 1) {
-                    warnx("%s: Invalid %d arg: %s", self_name, i, "Invalid format");
+                    warnx("%s: Invalid %d arg: %s", self_name, i + 3, "Invalid format");
                     ret = (EX_USAGE);
                     goto cleanup;
                 }
@@ -1413,15 +1414,28 @@ int seccomp_rule_add_builtin(WORD_LIST *list)
         }
 
         if (arg[n] != '\0') {
-             warnx("%s: Invalid %d arg: %s", self_name, i, "Too many parameters");
+             warnx("%s: Invalid %d arg: %s", self_name, i + 3, "Too many parameters");
              ret = (EX_USAGE);
              goto cleanup;
         }
 
-        ;
+        if (bit == 32) {
+            if (op_enum != SCMP_CMP_MASKED_EQ)
+                arg_cmp[i] = SCMP_CMP32(narg, op_enum, arg1);
+            else
+                arg_cmp[i] = SCMP_CMP32(narg, op_enum, arg1, arg2);
+        } else {
+            if (op_enum != SCMP_CMP_MASKED_EQ)
+                arg_cmp[i] = SCMP_CMP64(narg, op_enum, arg1);
+            else
+                arg_cmp[i] = SCMP_CMP64(narg, op_enum, arg1, arg2);
+        }
     }
 
-    ;
+    if (seccomp_rule_addv_p(seccomp_ctx, action, syscall_num, argc, arg_cmp) != 0) {
+        warnx("%s: %s from %s %s", self_name, loaded_fname, libseccomp_lib_name, "failed");
+        ret = (EXECUTION_FAILURE);
+    }
 
 cleanup:
     END_VLA(arg_array);
