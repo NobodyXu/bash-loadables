@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+#include <stdarg.h>
 
 #include <stdint.h>
 #include <inttypes.h>
@@ -1310,7 +1311,7 @@ int seccomp_rule_add_builtin(WORD_LIST *list)
     }
 
     const char* argv[2];
-    if (readin_args(&list, 2, argv) != 2 || list == NULL) {
+    if (readin_args(&list, 2, argv) != 2) {
         builtin_usage();
         return (EX_USAGE);
     }
@@ -1326,14 +1327,104 @@ int seccomp_rule_add_builtin(WORD_LIST *list)
             return result;
     }
 
-    int argc = list_length(list);
-
     typedef int (*seccomp_rule_addv_t)(scmp_filter_ctx, uint32_t, int, unsigned, const struct scmp_arg_cmp*);
     seccomp_rule_addv_t add_rulev_p = load_libseccomp_sym("seccomp_rule_add_array");
 
+    int argc = list_length(list);
+
+    struct scmp_arg_cmp *arg_array;
+    START_VLA(struct scmp_arg_cmp, argc, arg_array);
+
     int ret = (EXECUTION_SUCCESS);
 
+    for (int i = 3; i != argc; ++i, list = list->next) {
+        const char *arg = list->word->word;
+
+        uint64_t narg;
+        uint64_t bit;
+
+        char op[3];
+        uint64_t arg1;
+        uint64_t arg2;
+
+        int n;
+        int result = sscanf(arg, "A%" PRIu64 "_%" PRIu64 " %2s %" PRIu64 " %n", &narg, &bit, op, &arg1, &n);
+
+        if (result == EOF) {
+            warn("%s: sscanf on %d arg failed", self_name, i);
+            ret = (EXECUTION_FAILURE);
+            goto cleanup;
+        } else if (result != 4 || narg > 5 || (bit != 32 && bit != 64)) {
+            const char *err_msg = "Invalid format";
+            if (narg > 5)
+                err_msg = "narg too large";
+            else if (bit != 32 && bit != 64)
+                err_msg = "bit is neither 32 nor 64";
+            warnx("%s: Invalid %d arg: %s", self_name, i, err_msg);
+            ret = (EX_USAGE);
+            goto cleanup;
+        }
+
+        enum scmp_compare op_enum;
+        switch (((int) op[0] << 8) | (int) op[1]) {
+            default:
+                warnx("%s: Invalid %d arg: %s", self_name, i, "Invalid operator");
+                ret = (EX_USAGE);
+                goto cleanup;
+
+            case ((int) '<' << 8) | (int) '\0':
+                op_enum = SCMP_CMP_LT;
+                break;
+
+            case ((int) '<' << 8) | (int) '=':
+                op_enum = SCMP_CMP_LE;
+                break;
+
+            case ((int) '>' << 8) | (int) '\0':
+                op_enum = SCMP_CMP_GT;
+                break;
+
+            case ((int) '>' << 8) | (int) '=':
+                op_enum = SCMP_CMP_GE;
+                break;
+
+            case ((int) '=' << 8) | (int) '=':
+                op_enum = SCMP_CMP_EQ;
+                break;
+
+            case ((int) '!' << 8) | (int) '=':
+                op_enum = SCMP_CMP_NE;
+                break;
+
+            case ((int) '&' << 8) | (int) '\0':
+                op_enum = SCMP_CMP_MASKED_EQ;
+                arg += n;
+                result = sscanf(arg, "== %" PRIu64 " %n", &arg2, &n);
+                if (result == EOF) {
+                    warn("%s: sscanf on %d arg failed", self_name, i);
+                    ret = (EXECUTION_FAILURE);
+                    goto cleanup;
+                } else if (result != 1) {
+                    warnx("%s: Invalid %d arg: %s", self_name, i, "Invalid format");
+                    ret = (EX_USAGE);
+                    goto cleanup;
+                }
+                break;
+        }
+
+        if (arg[n] != '\0') {
+             warnx("%s: Invalid %d arg: %s", self_name, i, "Too many parameters");
+             ret = (EX_USAGE);
+             goto cleanup;
+        }
+
+        ;
+    }
+
     ;
+
+cleanup:
+    END_VLA(arg_array);
 
     return ret;
 }
