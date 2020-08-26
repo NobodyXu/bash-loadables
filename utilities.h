@@ -7,7 +7,7 @@
 # define _GNU_SOURCE
 #endif
 
-#include "bashansi.h"
+#include "bash/bashansi.h"
 #include "loadables.h"
 
 #include "bash/builtins/builtext.h"
