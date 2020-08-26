@@ -1447,9 +1447,25 @@ PUBLIC struct builtin seccomp_rule_add_struct = {
     seccomp_rule_add_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
+        "Valid action values for syscall_name:",
+        " - \"KILL\": terminate the thread with SIGSYS when a syscall is made against filter rule.",
+        " - \"KILL_PROCESS\": terminate the process with SIGSYS when a syscall is made against filter rule.",
+        " - \"TRAP\": send SIGSYS to the thread when a syscall is made against filter rule.",
+        " - \"ERRNO:errno\": The syscall will return errno.",
+        " - \"LOG\": The syscall made against filter rule will be logged.",
+        " - \"ALLOW\": have no effect on the thread which made a syscall against seccomp filter",
+        "",
+        "syscall_arg_requirements should be a list of arguments in the format of",
+        "\"A{arg}_{bits} op val\", where op can be </<=/>/>=/==/!=/&.",
+        "",
+        "If op == '&', then the argument should be \"A{arg}_{bits} op bitmask == val\"",
+        "",
+        "Example:",
+        " - seccomp_rule_add KILL read 'A0_32 == 1': If the 1st argument to read equals to 0, kill the thread",
+        " - seccomp_rule_add KILL write: If the thread calls write, it is killed.",
         (char*) NULL
     },                            /* array of long documentation strings. */
-    "seccomp_rule_add ",
+    "seccomp_rule_add action syscall_name [syscall_arg_requirements]",
     0                             /* reserved for internal use */
 };
 
