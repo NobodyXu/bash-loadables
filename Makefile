@@ -36,14 +36,9 @@ all: $(OUTS)
 bash/config.h: bash/configure
 	cd bash/ && ./configure
 
-%: %.c bash/config.h loadables.h.gch
+%: %.c bash/config.h
 	$(MAKE) -C bash/
 	$(CC) -fPIC $(CCFLAGS) $(INC) $(LIBS) $(LDFLAGS) -o $@ $<
-
-# Persudo recipe for vim linting
-%.h.gch: %.h
-	$(MAKE) -C bash/
-	$(CC) $(CCFLAGS) $(INC) $<
 
 clean:
 	rm -f $(OUTS) *.h.gch
