@@ -1329,12 +1329,12 @@ int seccomp_rule_add_builtin(WORD_LIST *list)
 
     typedef int (*seccomp_rule_addv_t)(scmp_filter_ctx, uint32_t, int, unsigned, const struct scmp_arg_cmp*);
     const char *loaded_fname = "seccomp_rule_add_array";
-    seccomp_rule_addv_t add_rulev_p = load_libseccomp_sym(loaded_fname);
+    seccomp_rule_addv_t seccomp_rule_addv_p = load_libseccomp_sym(loaded_fname);
 
     int argc = list_length(list);
 
     struct scmp_arg_cmp *arg_cmp;
-    START_VLA(struct scmp_arg_cmp, argc, arg_array);
+    START_VLA(struct scmp_arg_cmp, argc, arg_cmp);
 
     int ret = (EXECUTION_SUCCESS);
 
@@ -1438,7 +1438,7 @@ int seccomp_rule_add_builtin(WORD_LIST *list)
     }
 
 cleanup:
-    END_VLA(arg_array);
+    END_VLA(arg_cmp);
 
     return ret;
 }
