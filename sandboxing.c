@@ -1244,6 +1244,35 @@ PUBLIC struct builtin seccomp_init_struct = {
     0                             /* reserved for internal use */
 };
 
+int seccomp_release_builtin(WORD_LIST *list)
+{
+    const char *self_name = "seccomp_release";
+
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    if (list != NULL) {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    if (seccomp_ctx != NULL)
+        return call_seccomp_release(seccomp_ctx);
+    else
+        return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin seccomp_release_struct = {
+    "seccomp_release",       /* builtin name */
+    seccomp_init_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "Release all resources occupied by libseccomp.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "seccomp_release",
+    0                             /* reserved for internal use */
+};
+
 int get_arch(WORD_LIST **list, uint32_t *arch, const char *fname)
 {
     typedef uint32_t (*seccomp_arch_native_t)();
