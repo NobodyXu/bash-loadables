@@ -1598,6 +1598,24 @@ PUBLIC struct builtin seccomp_arch_remove_struct = {
     0                             /* reserved for internal use */
 };
 
+int seccomp_arch_exist_builtin(WORD_LIST *list)
+{
+    return seccomp_arch_template_builtin(list, "seccomp_arch_exist", 1);
+}
+PUBLIC struct builtin seccomp_arch_exist_struct = {
+    "seccomp_arch_exist",       /* builtin name */
+    seccomp_arch_exist_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "Add arch to seccomp filter.",
+        "arch can be native/x86/x86-64/...\n",
+        "Returns 3 if the architecture is not added, 1 if failed, 2 if wrong usage.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "seccomp_arch_exist arch",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
