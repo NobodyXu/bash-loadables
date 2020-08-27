@@ -1830,6 +1830,22 @@ PUBLIC struct builtin seccomp_export_bpf_struct = {
     0                             /* reserved for internal use */
 };
 
+int seccomp_export_pfc_builtin(WORD_LIST *list)
+{
+    return seccomp_export_template_builtin(list, "seccomp_export_pfc");
+}
+PUBLIC struct builtin seccomp_export_pfc_struct = {
+    "seccomp_export_pfc",       /* builtin name */
+    seccomp_export_pfc_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "seccomp_export_pfc generate and output the current seccomp filter in PFC to fd..",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "seccomp_export_pfc int:fd",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -1880,6 +1896,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "seccomp_syscall_priority", .flags = 0 },
         { .word = "seccomp_load", .flags = 0 },
         { .word = "seccomp_export_bpf", .flags = 0 },
+        { .word = "seccomp_export_pfc", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
