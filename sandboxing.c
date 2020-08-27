@@ -1154,6 +1154,12 @@ int call_seccomp_release(scmp_filter_ctx ctx)
     return (EXECUTION_SUCCESS);
 }
 
+#define CHECK_SECCOMP_CTX_NOT_NULL() \
+    if (seccomp_ctx == NULL) {       \
+        warnx("%s isn't initialized yet!\nCall %s to initialize it.", libseccomp_lib_name, "seccomp_init"); \
+        return (EXECUTION_FAILURE);  \
+    }
+
 int parse_action(const char *arg, uint32_t *action, const char *fname, size_t i)
 {
     if (strcasecmp(arg, "KILL") == 0)
@@ -1375,10 +1381,7 @@ int seccomp_rule_add_builtin(WORD_LIST *list)
             return result;
     }
 
-    if (seccomp_ctx == NULL) {
-        warnx("%s isn't initialized yet!\nCall %s to initialize it.", libseccomp_lib_name, "seccomp_init");
-        return (EXECUTION_FAILURE);
-    }
+    CHECK_SECCOMP_CTX_NOT_NULL();
 
     typedef int (*seccomp_rule_addv_t)(scmp_filter_ctx, uint32_t, int, unsigned, const struct scmp_arg_cmp*);
     const char *loaded_fname = "seccomp_rule_add_array";
@@ -1543,10 +1546,7 @@ int seccomp_arch_template_builtin(WORD_LIST *list, const char *fname, int is_sec
             return result;
     }
  
-    if (seccomp_ctx == NULL) {
-        warnx("%s isn't initialized yet!\nCall %s to initialize it.", libseccomp_lib_name, "seccomp_init");
-        return (EXECUTION_FAILURE);
-    }
+    CHECK_SECCOMP_CTX_NOT_NULL();
 
     fp f = load_libseccomp_sym(fname);
     int result = f(seccomp_ctx, arch);
@@ -1650,10 +1650,7 @@ int seccomp_attr_set_builtin(WORD_LIST *list)
         return (EX_USAGE);
     }
 
-    if (seccomp_ctx == NULL) {
-        warnx("%s isn't initialized yet!\nCall %s to initialize it.", libseccomp_lib_name, "seccomp_init");
-        return (EXECUTION_FAILURE);
-    }
+    CHECK_SECCOMP_CTX_NOT_NULL();
 
     seccomp_attr_set_t seccomp_attr_set_p = load_libseccomp_sym(self_name);
     int result = seccomp_attr_set_p(seccomp_ctx, attr, val);
@@ -1721,10 +1718,7 @@ int seccomp_syscall_priority_builtin(WORD_LIST *list)
         priority = num;
     }
 
-    if (seccomp_ctx == NULL) {
-        warnx("%s isn't initialized yet!\nCall %s to initialize it.", libseccomp_lib_name, "seccomp_init");
-        return (EXECUTION_FAILURE);
-    }
+    CHECK_SECCOMP_CTX_NOT_NULL();
 
     seccomp_syscall_priority_t seccomp_syscall_priority_p = load_libseccomp_sym(self_name);
     int result = seccomp_syscall_priority_p(seccomp_ctx, syscall_number, priority);
