@@ -1514,7 +1514,7 @@ PUBLIC struct builtin seccomp_rule_add_struct = {
         "If op == '&', then the argument should be \"A{arg}_{bits} op bitmask == val\"",
         "",
         "If you want to add a syscall for architecture other than your native arch, you can use switch -a:",
-        "-a x86/x86-64/...",
+        "-a native/x86/x86-64/...",
         "",
         "Example:",
         " - seccomp_rule_add KILL read 'A0_32 == 1': If the 1st argument to read equals to 0, kill the thread",
