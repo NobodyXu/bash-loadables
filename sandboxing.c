@@ -1823,7 +1823,8 @@ PUBLIC struct builtin seccomp_export_bpf_struct = {
     seccomp_export_bpf_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
-        "seccomp_export_bpf generate and output the current seccomp filter in BPF to fd..",
+        "seccomp_export_bpf generate and output the current seccomp filter in BPF to fd.\n",
+        "Generated output is suitable to load into a kernel.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "seccomp_export_bpf int:fd",
@@ -1839,7 +1840,8 @@ PUBLIC struct builtin seccomp_export_pfc_struct = {
     seccomp_export_pfc_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
-        "seccomp_export_pfc generate and output the current seccomp filter in PFC to fd..",
+        "seccomp_export_pfc generate and output the current seccomp filter in PFC to fd.\n",
+        "Generated output is human readable and for debugging purpose.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "seccomp_export_pfc int:fd",
