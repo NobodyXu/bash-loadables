@@ -1616,6 +1616,74 @@ PUBLIC struct builtin seccomp_arch_exist_struct = {
     0                             /* reserved for internal use */
 };
 
+int seccomp_attr_set_builtin(WORD_LIST *list)
+{
+    const char *self_name = "seccomp_attr_set";
+    typedef int (*seccomp_attr_set_t)(scmp_filter_ctx, enum scmp_filter_attr, uint32_t);
+
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    const char* argv[2];
+    if (to_argv(list, 2, argv) == -1)
+        return (EX_USAGE);
+
+    enum scmp_filter_attr attr;
+    if (strcasecmp(argv[0], "CTL_NO_NEW_PRIVS") == 0)
+        attr = SCMP_FLTATR_CTL_NNP;
+    else if (strcasecmp(argv[0], "CTL_TSYNC") == 0)
+        attr = SCMP_FLTATR_CTL_TSYNC;
+    else if (strcasecmp(argv[0], "CTL_LOG") == 0)
+        attr = SCMP_FLTATR_CTL_LOG;
+    else {
+        warnx("%s: Unknown attr", self_name);
+        return (EX_USAGE);
+    }
+
+    uint32_t val;
+    if (strcmp(argv[1], "1") == 0)
+        val = 1;
+    else if (strcmp(argv[1], "0") == 0)
+        val = 0;
+    else {
+        warnx("%s: Unknown val", self_name);
+        return (EX_USAGE);
+    }
+
+    if (seccomp_ctx == NULL) {
+        warnx("%s isn't initialized yet!\nCall %s to initialize it.", libseccomp_lib_name, "seccomp_init");
+        return (EXECUTION_FAILURE);
+    }
+
+    seccomp_attr_set_t seccomp_attr_set_p = load_libseccomp_sym(self_name);
+    int result = seccomp_attr_set_p(seccomp_ctx, attr, val);
+    if (result != 0) {
+        errno = -result;
+        warn("%s failed", self_name);
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin seccomp_attr_set_struct = {
+    "seccomp_attr_set",       /* builtin name */
+    seccomp_attr_set_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "seccomp_attr_set set value of attr to val.\n",
+        "Possible attr",
+        " - CTL_NO_NEW_PRIVS: set to 1 so that NO_NEW_PRIVS is set on seccomp_load (the default)",
+        " - CTL_TSYNC: set to 1 to synchronize the load of filters across all threads in seccomp_load, ",
+        "              if cannot synchronize the filter during seccomp_load, seccomp_load will fail.",
+        "              Defalt to 0.",
+        " - CTL_LOG: set to 1 to log all not allowed syscalls.",
+        "              Defalt to 0.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "seccomp_attr_set attr val",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -1662,6 +1730,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "seccomp_arch_add", .flags = 0 },
         { .word = "seccomp_arch_remove", .flags = 0 },
         { .word = "seccomp_arch_exist", .flags = 0 },
+        { .word = "seccomp_attr_set", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
