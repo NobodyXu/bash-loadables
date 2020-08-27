@@ -1566,6 +1566,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "capng_have_capabilities", .flags = 0 },
 
         { .word = "seccomp_init", .flags = 0 },
+        { .word = "seccomp_release", .flags = 0 },
         { .word = "seccomp_rule_add", .flags = 0 },
     };
 
