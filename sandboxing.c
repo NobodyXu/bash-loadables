@@ -1777,7 +1777,9 @@ PUBLIC struct builtin seccomp_load_struct = {
     seccomp_load_builtin, /* function implementing the builtin */
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
-        "seccomp_load load the filter into kernel.",
+        "seccomp_load load the filter into kernel.\n",
+        "Unless seccomp_attr_set CTL_NO_NEW_PRIVS 0, otherwise seccomp_load will set NO_NEW_PRIVS before",
+        "loading the filter.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "seccomp_load",
