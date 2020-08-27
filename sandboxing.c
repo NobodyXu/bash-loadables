@@ -1521,7 +1521,7 @@ PUBLIC struct builtin seccomp_rule_add_struct = {
         " - seccomp_rule_add KILL write: If the thread calls write, it is killed.",
         (char*) NULL
     },                            /* array of long documentation strings. */
-    "seccomp_rule_add action syscall_name [syscall_arg_requirements]",
+    "seccomp_rule_add [-a arch] action syscall_name [syscall_arg_requirements]",
     0                             /* reserved for internal use */
 };
 
