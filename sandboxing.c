@@ -1305,12 +1305,15 @@ int get_arch(WORD_LIST **list, uint32_t *arch, const char *fname)
     for (int opt; (opt = internal_getopt(*list, "a:")) != -1; ) {
         switch (opt) {
             case 'a':
-            {
+            if (!has_set_arch) {
                 int result = resolve_arch(list_optarg, arch, fname);
                 if (result != (EXECUTION_SUCCESS))
                     return result;
 
                 has_set_arch = 1;
+            } else {
+                warnx("%s: Switch -a is specified twice", fname);
+                return (EX_USAGE);
             }
             break;
 
