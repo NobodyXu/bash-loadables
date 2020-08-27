@@ -1784,6 +1784,52 @@ PUBLIC struct builtin seccomp_load_struct = {
     0                             /* reserved for internal use */
 };
 
+int seccomp_export_template_builtin(WORD_LIST *list, const char *fname)
+{
+    typedef int (*fp)(const scmp_filter_ctx, int fd);
+
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    int fd;
+    {
+        const char* argv[1];
+        if (to_argv(list, 1, argv) == -1)
+            return (EX_USAGE);
+
+        if (str2fd(argv[0], &fd) == -1)
+            return (EX_USAGE);
+    }
+
+    CHECK_SECCOMP_CTX_NOT_NULL();
+
+    fp f = load_libseccomp_sym(fname);
+    int result = f(seccomp_ctx, fd);
+
+    if (result != 0) {
+        errno = -result;
+        warn("%s failed", fname);
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+int seccomp_export_bpf_builtin(WORD_LIST *list)
+{
+    return seccomp_export_template_builtin(list, "seccomp_export_bpf");
+}
+PUBLIC struct builtin seccomp_export_bpf_struct = {
+    "seccomp_export_bpf",       /* builtin name */
+    seccomp_export_bpf_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "seccomp_export_bpf generate and output the current seccomp filter in BPF to fd..",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "seccomp_export_bpf int:fd",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -1833,6 +1879,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "seccomp_attr_set", .flags = 0 },
         { .word = "seccomp_syscall_priority", .flags = 0 },
         { .word = "seccomp_load", .flags = 0 },
+        { .word = "seccomp_export_bpf", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
