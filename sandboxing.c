@@ -1737,6 +1737,9 @@ PUBLIC struct builtin seccomp_syscall_priority_struct = {
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
         "seccomp_syscall_priority set priority of syscall on arch (default to native) to priority.\n",
+        "Filters for syscalls with higher priority will be placed earlier in the seccomp filter code",
+        "so that they incur less overhead at the expense of syscalls with lower priority.\n",
+        "User can set syscall priority prior to seccomp_rule_add.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "seccomp_syscall_priority [-a arch] syscall_name uint8_t:priority",
