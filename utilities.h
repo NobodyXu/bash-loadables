@@ -273,7 +273,7 @@ int parse_flag(intmax_t *result, WORD_LIST **list, const char *opts, const intma
 {
     reset_internal_getopt();
     for (int opt; (opt = internal_getopt(*list, (char*) opts)) != -1; ) {
-        char *opt_index = strchr(opts, opt);
+        const char *opt_index = strchr(opts, opt);
         if (opt_index != NULL)
             *result |= flags[opt_index - opts];
         else
