@@ -1882,6 +1882,42 @@ PUBLIC struct builtin seccomp_api_get_struct = {
     0                             /* reserved for internal use */
 };
 
+int seccomp_version_builtin(WORD_LIST *list)
+{
+    const char *self_name = "seccomp_version";
+    typedef const struct scmp_version* (*seccomp_version_t)();
+
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    if (list != NULL) {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    seccomp_version_t seccomp_version_p = load_libseccomp_sym(self_name);
+    const struct scmp_version *version = seccomp_version_p();
+
+    int result = printf("%u.%u.%u\n", version->major, version->minor, version->micro);
+    if (result < 0) {
+        warn("%s: printf failed", self_name);
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin seccomp_version_struct = {
+    "seccomp_version",       /* builtin name */
+    seccomp_version_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "seccomp_version prints out the version of libsecomp.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "seccomp_version",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -1934,6 +1970,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "seccomp_export_bpf", .flags = 0 },
         { .word = "seccomp_export_pfc", .flags = 0 },
         { .word = "seccomp_api_get", .flags = 0 },
+        { .word = "seccomp_version", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
