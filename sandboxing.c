@@ -1660,6 +1660,8 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "seccomp_release", .flags = 0 },
         { .word = "seccomp_rule_add", .flags = 0 },
         { .word = "seccomp_arch_add", .flags = 0 },
+        { .word = "seccomp_arch_remove", .flags = 0 },
+        { .word = "seccomp_arch_exist", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
