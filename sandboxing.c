@@ -1684,6 +1684,71 @@ PUBLIC struct builtin seccomp_attr_set_struct = {
     0                             /* reserved for internal use */
 };
 
+int seccomp_syscall_priority_builtin(WORD_LIST *list)
+{
+    const char *self_name = "seccomp_syscall_priority";
+    typedef int (*seccomp_syscall_priority_t)(scmp_filter_ctx, int syscall, uint8_t priority);
+
+    uint32_t arch;
+    {
+        int result = get_arch(&list, &arch, self_name);
+        if (result != (EXECUTION_SUCCESS))
+            return result;
+    }
+
+    int syscall_number;
+    uint8_t priority;
+    {
+        const char* argv[2];
+        if (to_argv(list, 2, argv) == -1)
+            return (EX_USAGE);
+ 
+        int result = seccomp_resolve_syscall(arch, argv[0], &syscall_number, 0, self_name);
+        if (result != (EXECUTION_SUCCESS))
+            return result;
+        
+        intmax_t num;
+        if (legal_number(argv[1], &num) == 0) {
+            warnx("%s: 2 arg %s", self_name, "need to be a number");
+            builtin_usage();
+            return (EX_USAGE);
+        } else if (result > UINT8_MAX || result < 0) {
+            warnx("%s: 2 arg %s", self_name, "is out of range");
+            builtin_usage();
+            return (EX_USAGE);
+        }
+ 
+        priority = num;
+    }
+
+    if (seccomp_ctx == NULL) {
+        warnx("%s isn't initialized yet!\nCall %s to initialize it.", libseccomp_lib_name, "seccomp_init");
+        return (EXECUTION_FAILURE);
+    }
+
+    seccomp_syscall_priority_t seccomp_syscall_priority_p = load_libseccomp_sym(self_name);
+    int result = seccomp_syscall_priority_p(seccomp_ctx, syscall_number, priority);
+    
+    if (result != 0) {
+        errno = -result;
+        warn("%s failed", self_name);
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin seccomp_syscall_priority_struct = {
+    "seccomp_syscall_priority",       /* builtin name */
+    seccomp_syscall_priority_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "seccomp_syscall_priority set priority of syscall on arch (default to native) to priority.\n",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "seccomp_syscall_priority [-a arch] syscall_name uint8_t:priority",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -1731,6 +1796,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "seccomp_arch_remove", .flags = 0 },
         { .word = "seccomp_arch_exist", .flags = 0 },
         { .word = "seccomp_attr_set", .flags = 0 },
+        { .word = "seccomp_syscall_priority", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
