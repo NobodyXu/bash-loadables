@@ -1525,6 +1525,61 @@ PUBLIC struct builtin seccomp_rule_add_struct = {
     0                             /* reserved for internal use */
 };
 
+int seccomp_arch_template_builtin(WORD_LIST *list, const char *fname, int is_seccomp_arch_exist)
+{
+    typedef int (*fp)(scmp_filter_ctx, uint32_t);
+
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    uint32_t arch;
+    {
+        const char* argv[1];
+        if (to_argv(list, 1, argv) == -1)
+            return (EX_USAGE);
+
+        int result = resolve_arch(argv[0], &arch, fname);
+        if (result != (EXECUTION_SUCCESS))
+            return result;
+    }
+ 
+    if (seccomp_ctx == NULL) {
+        warnx("%s isn't initialized yet!\nCall %s to initialize it.", libseccomp_lib_name, "seccomp_init");
+        return (EXECUTION_FAILURE);
+    }
+
+    fp f = load_libseccomp_sym(fname);
+    int result = f(seccomp_ctx, arch);
+
+    if (is_seccomp_arch_exist && result == -EEXIST)
+        return 3;
+
+    if (result != 0) {
+        errno = -result;
+        warn("%s failed", fname);
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+int seccomp_arch_add_builtin(WORD_LIST *list)
+{
+    return seccomp_arch_template_builtin(list, "seccomp_arch_add", 0);
+}
+PUBLIC struct builtin seccomp_arch_add_struct = {
+    "seccomp_arch_add",       /* builtin name */
+    seccomp_arch_add_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "Add arch to seccomp filter.",
+        "arch can be native/x86/x86-64/...\n",
+        "NOTE that after seccomp_init, native architecture is automatically added.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "seccomp_arch_add arch",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -1568,6 +1623,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "seccomp_init", .flags = 0 },
         { .word = "seccomp_release", .flags = 0 },
         { .word = "seccomp_rule_add", .flags = 0 },
+        { .word = "seccomp_arch_add", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
