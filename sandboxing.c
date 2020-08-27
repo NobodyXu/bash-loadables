@@ -1746,6 +1746,44 @@ PUBLIC struct builtin seccomp_syscall_priority_struct = {
     0                             /* reserved for internal use */
 };
 
+int seccomp_load_builtin(WORD_LIST *list)
+{
+    const char *self_name = "seccomp_load";
+    typedef int (*seccomp_load_t)(scmp_filter_ctx);
+
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    if (list != NULL) {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    CHECK_SECCOMP_CTX_NOT_NULL();
+
+    seccomp_load_t seccomp_load_p = load_libseccomp_sym(self_name);
+    int result = seccomp_load_p(seccomp_ctx);
+
+    if (result != 0) {
+        errno = -result;
+        warn("%s failed", self_name);
+        return (EXECUTION_FAILURE);
+    }
+
+    return (EXECUTION_SUCCESS);
+}
+PUBLIC struct builtin seccomp_load_struct = {
+    "seccomp_load",       /* builtin name */
+    seccomp_load_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "seccomp_load load the filter into kernel.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "seccomp_load",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -1794,6 +1832,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "seccomp_arch_exist", .flags = 0 },
         { .word = "seccomp_attr_set", .flags = 0 },
         { .word = "seccomp_syscall_priority", .flags = 0 },
+        { .word = "seccomp_load", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
