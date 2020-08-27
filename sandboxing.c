@@ -1273,6 +1273,27 @@ PUBLIC struct builtin seccomp_release_struct = {
     0                             /* reserved for internal use */
 };
 
+int resolve_arch(const char *arg, uint32_t *arch, const char *fname)
+{
+    typedef uint32_t (*seccomp_arch_resolve_name_t)(const char*);
+    typedef uint32_t (*seccomp_arch_native_t)();
+
+    if (strcasecmp(arg, "native") != 0) {
+        const char *sym = "seccomp_arch_resolve_name";
+        seccomp_arch_resolve_name_t seccomp_arch_resolve_name_p = load_libseccomp_sym(sym);
+
+        *arch = seccomp_arch_resolve_name_p(arg);
+        if (*arch == 0) {
+            warnx("%s: get_arch: Args provided in option '-a' isn't an architecture", fname);
+            return (EX_USAGE);
+        }
+    } else {
+        seccomp_arch_native_t seccomp_arch_native_p = load_libseccomp_sym("seccomp_arch_native");
+        *arch = seccomp_arch_native_p();
+    }
+
+    return (EXECUTION_SUCCESS);
+}
 int get_arch(WORD_LIST **list, uint32_t *arch, const char *fname)
 {
     typedef uint32_t (*seccomp_arch_native_t)();
@@ -1285,14 +1306,9 @@ int get_arch(WORD_LIST **list, uint32_t *arch, const char *fname)
         switch (opt) {
             case 'a':
             {
-                const char *sym = "seccomp_arch_resolve_name";
-                seccomp_arch_resolve_name_t seccomp_arch_resolve_name_p = load_libseccomp_sym(sym);
-
-                *arch = seccomp_arch_resolve_name_p(list_optarg);
-                if (*arch == 0) {
-                    warnx("%s: get_arch: Args provided in option '-a' isn't an architecture", fname);
-                    return (EX_USAGE);
-                }
+                int result = resolve_arch(list_optarg, arch, fname);
+                if (result != (EXECUTION_SUCCESS))
+                    return result;
 
                 has_set_arch = 1;
             }
@@ -1306,14 +1322,14 @@ int get_arch(WORD_LIST **list, uint32_t *arch, const char *fname)
         }
     }
 
-    if (!has_set_arch) {
-        seccomp_arch_native_t seccomp_arch_native_p = load_libseccomp_sym("seccomp_arch_native");
-        *arch = seccomp_arch_native_p();
-    }
+    int ret = (EXECUTION_SUCCESS);
+
+    if (!has_set_arch)
+        ret = resolve_arch("native", arch, fname);
 
     *list = loptend;
 
-    return (EXECUTION_SUCCESS);
+    return ret;
 }
 int seccomp_resolve_syscall(uint32_t arch, const char *arg, int *syscall_num, size_t i, const char *fname)
 {
