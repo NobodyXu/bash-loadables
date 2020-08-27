@@ -1848,6 +1848,38 @@ PUBLIC struct builtin seccomp_export_pfc_struct = {
     0                             /* reserved for internal use */
 };
 
+int seccomp_api_get_builtin(WORD_LIST *list)
+{
+    const char *self_name = "seccomp_api_get";
+    typedef const unsigned int (*seccomp_api_get_t)();
+
+    if (check_no_options(&list) == -1)
+        return (EX_USAGE);
+
+    if (list != NULL) {
+        builtin_usage();
+        return (EX_USAGE);
+    }
+
+    seccomp_api_get_t seccomp_api_get_p = load_libseccomp_sym(self_name);
+    return seccomp_api_get_p();
+}
+PUBLIC struct builtin seccomp_api_get_struct = {
+    "seccomp_api_get",       /* builtin name */
+    seccomp_api_get_builtin, /* function implementing the builtin */
+    BUILTIN_ENABLED,               /* initial flags for builtin */
+    (char*[]){
+        "seccomp_api_get returns:",
+        " - 0: Reserved value, not currently used.",
+        " - 1: Base level support.",
+        " - 2: CTL_TSYNC attribute is supported and libseccomp uses seccomp(2) syscall to load the filter.",
+        " - 3: CTL_LOG attribute and LOG action is supported.",
+        (char*) NULL
+    },                            /* array of long documentation strings. */
+    "seccomp_api_get",
+    0                             /* reserved for internal use */
+};
+
 int sandboxing_builtin(WORD_LIST *_)
 {
     Dl_info info;
@@ -1899,6 +1931,7 @@ int sandboxing_builtin(WORD_LIST *_)
         { .word = "seccomp_load", .flags = 0 },
         { .word = "seccomp_export_bpf", .flags = 0 },
         { .word = "seccomp_export_pfc", .flags = 0 },
+        { .word = "seccomp_api_get", .flags = 0 },
     };
 
     const size_t builtin_num = sizeof(words) / sizeof(WORD_DESC);
