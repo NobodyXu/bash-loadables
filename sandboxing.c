@@ -1864,7 +1864,7 @@ int seccomp_api_get_builtin(WORD_LIST *list)
     }
 
     seccomp_api_get_t seccomp_api_get_p = load_libseccomp_sym(self_name);
-    return seccomp_api_get_p();
+    return seccomp_api_get_p() + 3;
 }
 PUBLIC struct builtin seccomp_api_get_struct = {
     "seccomp_api_get",       /* builtin name */
@@ -1872,10 +1872,12 @@ PUBLIC struct builtin seccomp_api_get_struct = {
     BUILTIN_ENABLED,               /* initial flags for builtin */
     (char*[]){
         "seccomp_api_get returns:",
-        " - 0: Reserved value, not currently used.",
-        " - 1: Base level support.",
-        " - 2: CTL_TSYNC attribute is supported and libseccomp uses seccomp(2) syscall to load the filter.",
-        " - 3: CTL_LOG attribute and LOG action is supported.",
+        " - 1: on failure to load libseccomp or symbol seccomp_api.",
+        " - 2: wrong usage", 
+        " - 3: Reserved value, not currently used.",
+        " - 4: Base level support.",
+        " - 5: CTL_TSYNC attribute is supported and libseccomp uses seccomp(2) syscall to load the filter.",
+        " - 6: CTL_LOG attribute and LOG action is supported.",
         (char*) NULL
     },                            /* array of long documentation strings. */
     "seccomp_api_get",
