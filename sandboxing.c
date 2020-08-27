@@ -1356,6 +1356,11 @@ int seccomp_rule_add_builtin(WORD_LIST *list)
             return result;
     }
 
+    if (seccomp_ctx == NULL) {
+        warnx("%s isn't initialized yet!\nCall %s to initialize it.", libseccomp_lib_name, "seccomp_init");
+        return (EXECUTION_FAILURE);
+    }
+
     typedef int (*seccomp_rule_addv_t)(scmp_filter_ctx, uint32_t, int, unsigned, const struct scmp_arg_cmp*);
     const char *loaded_fname = "seccomp_rule_add_array";
     seccomp_rule_addv_t seccomp_rule_addv_p = load_libseccomp_sym(loaded_fname);
