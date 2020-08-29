@@ -14,6 +14,7 @@
 
 #include <stdint.h>
 #include <inttypes.h>
+#include <setjmp.h>
 
 #include <unistd.h>
 #include <fcntl.h>
