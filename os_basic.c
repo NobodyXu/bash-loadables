@@ -1642,6 +1642,8 @@ int clone_builtin(WORD_LIST *list)
     jmp_buf env;
     if (setjmp(env) == 0) {
         {
+            // Since stack is grown from higher to low, this wouldn't cause undetected stack overflow
+            // that overwrites heap.
             char stack[8064];
             pid = clone(clone_fn, stack, flags | SIGCHLD, &env);
         }
