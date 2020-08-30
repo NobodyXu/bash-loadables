@@ -48,6 +48,14 @@
 #include <err.h>
 #include <errno.h>
 
+#if defined(__hppa__) || defined(__ia64__)
+# define STACK_GROWS_DOWN 0
+#else
+# define STACK_GROWS_DOWN 1
+#endif
+
+#define STACK(addr, len) ((addr) + (len) * STACK_GROWS_DOWN)
+
 /**
  * on modern linux kernel, SCM_MAX_FD is equal to 253
  */
@@ -1642,10 +1650,8 @@ int clone_builtin(WORD_LIST *list)
     jmp_buf env;
     if (setjmp(env) == 0) {
         {
-            // Since stack is grown from higher to low, this wouldn't cause undetected stack overflow
-            // that overwrites heap.
             char stack[8064];
-            pid = clone(clone_fn, stack, flags | SIGCHLD, &env);
+            pid = clone(clone_fn, STACK(stack, sizeof(stack)), flags | SIGCHLD, &env);
         }
 
         if (pid == -1) {

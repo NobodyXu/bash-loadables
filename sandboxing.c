@@ -37,6 +37,14 @@
 #include <cap-ng.h>
 #include <seccomp.h>
 
+#if defined(__hppa__) || defined(__ia64__)
+# define STACK_GROWS_DOWN 0
+#else
+# define STACK_GROWS_DOWN 1
+#endif
+
+#define STACK(addr, len) ((addr) + (len) * STACK_GROWS_DOWN)
+
 static void *libcapng_handle;
 static void *libseccomp_handle;
 
@@ -196,7 +204,7 @@ int clone_ns_builtin(WORD_LIST *list)
             // Since stack is grown from higher to low, this wouldn't cause undetected stack overflow
             // that overwrites heap.
             char stack[8064];
-            pid = clone(clone_ns_fn, stack, flags | SIGCHLD, &env);
+            pid = clone(clone_ns_fn, STACK(stack, sizeof(stack)), flags | SIGCHLD, &env);
         }
 
         if (pid == -1) {
