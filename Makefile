@@ -23,7 +23,7 @@ DEFS = -DHAVE_CONFIG_H
 LOCAL_DEFS = -DSHELL
 
 CCFLAGS = $(DEFS) $(LOCAL_DEFS) $(LOCAL_CFLAGS) $(CFLAGS)
-LDFLAGS = -shared -Wl,-soname,$@ -Wl,-icf=all,--gc-sections -flto -Wl,--plugin-opt=O3
+LDFLAGS = -shared -Wl,-soname,$@ -Wl,-icf=all,--gc-sections -flto -Wl,--plugin-opt=O3 -fuse-ld=lld
 
 INC := -Ibash -Ibash/lib -Ibash/builtins -Ibash/include -Ibash/example
 LIBS := -ldl
@@ -33,11 +33,13 @@ OUTS := $(SRCS:.c=)
 
 all: $(OUTS)
 
-bash/config.h: bash/configure
-	cd bash/ && ./configure
+#bash/Makefile: bash/configure
+#	cd bash/ && ./configure
+#
+#bash/bash: bash/Makefile
+#	$(MAKE) -C bash/
 
-%: %.c bash/config.h
-	$(MAKE) -C bash/
+%: %.c bash/bash
 	$(CC) -fPIC $(CCFLAGS) $(INC) $(LIBS) $(LDFLAGS) -o $@ $<
 
 clean:
