@@ -4,11 +4,24 @@ An extension to bash's builtin, providing more functionalities and potentially b
 
 ## How to build this project
 
-```
-git clone --recurse-submodules https://github.com/NobodyXu/bash-loadables
-cd bash-loadabes/
+### Requirements
+ - Clang: `sudo apt install clang`
+ - LLD: `sudo apt install lld`
+ - cap-ng.h: `sudo apt install libcap-ng-dev`
+ - seccomp.h: `sudo apt install libseccomp-dev`
 
-# Make sure you have clang installed before running make
+```
+# Clone this repo
+git clone --recurse-submodules https://github.com/NobodyXu/bash-loadables
+cd bash-loadables
+
+# Build the bash submodule
+cd bash
+./configure
+make
+
+# Build this project
+cd ..
 make all -j $(nproc)
 ```
 
